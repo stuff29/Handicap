@@ -12,9 +12,7 @@ body {
   background: #f5f7f6;
 }
 
-h1 {
-  text-align: center;
-}
+h1 { text-align: center; }
 
 .controls {
   text-align: center;
@@ -56,6 +54,11 @@ button {
   font-size: 13px;
 }
 
+.diff-line {
+  font-size: 12px;
+  margin: 2px 0;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -71,11 +74,6 @@ th, td {
 
 th {
   background: #e8f3ec;
-}
-
-.diff-line {
-  font-size: 12px;
-  margin: 2px 0;
 }
 </style>
 </head>
@@ -115,25 +113,36 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl0
 let data = [];
 let timeCursor = null;
 
+function safeNum(v){
+  let n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+/* -------- CSV PARSER (SAFE) -------- */
 function parseCSV(text) {
   const lines = text.trim().split("\n");
   const headers = lines[0].split(",");
+
   return lines.slice(1).map(line => {
     const values = line.split(",");
     let obj = {};
-    headers.forEach((h,i)=> obj[h.trim()] = values[i]);
+    headers.forEach((h,i)=>{
+      obj[h.trim()] = (values[i] || "").trim();
+    });
     return obj;
   });
 }
 
-// Differential (WHS formula)
+/* -------- WHS DIFFERENTIAL -------- */
 function diff(score, rating, slope) {
   return ((score - rating) * 113 / slope);
 }
 
-// WHS handicap logic
+/* -------- WHS HANDICAP -------- */
 function handicapWithDetails(rounds) {
-  if (!rounds.length) return { index: 0, used: [], all: [] };
+  if (!rounds || rounds.length === 0) {
+    return { index: 0, used: [], all: [] };
+  }
 
   let sorted = [...rounds]
     .sort((a,b)=> new Date(b.date) - new Date(a.date))
@@ -142,58 +151,51 @@ function handicapWithDetails(rounds) {
   let diffs = sorted.map(r => r.diff);
 
   let n = diffs.length;
-  let count;
+  let count = 1;
 
-  if (n <= 3) count = 1;
-  else if (n <= 4) count = 1;
-  else if (n <= 5) count = 1;
-  else if (n <= 6) count = 2;
-  else if (n <= 7) count = 2;
+  if (n <= 4) count = 1;
   else if (n <= 8) count = 2;
-  else if (n <= 9) count = 3;
-  else if (n <= 10) count = 3;
   else if (n <= 11) count = 3;
-  else if (n <= 12) count = 4;
-  else if (n <= 13) count = 4;
   else if (n <= 14) count = 4;
-  else if (n <= 15) count = 5;
   else if (n <= 16) count = 5;
-  else if (n <= 17) count = 6;
   else if (n <= 18) count = 6;
-  else if (n <= 19) count = 7;
-  else count = 8;
+  else if (n === 19) count = 7;
+  else if (n >= 20) count = 8;
 
-  let used = [...diffs].sort((a,b)=>a-b).slice(0, count);
+  let sortedDiffs = [...diffs].sort((a,b)=>a-b);
+
+  let used = sortedDiffs.slice(0, count);
 
   let avg = used.reduce((a,b)=>a+b,0)/used.length;
 
   return {
     index: +(avg * 0.96).toFixed(1),
-    used,
-    all: diffs
+    used: used,
+    all: sortedDiffs
   };
 }
 
-// Time machine
-function setTime(date) {
+/* -------- TIME MACHINE -------- */
+function setTime(date){
   timeCursor = date ? new Date(date) : null;
   render();
 }
 
-function getFiltered() {
-  if (!timeCursor) return data;
+function getFiltered(){
+  if(!timeCursor) return data;
   return data.filter(r => new Date(r.date) <= timeCursor);
 }
 
-function getPlayers(list) {
+function getPlayers(list){
   return [...new Set(list.map(d => d.player))];
 }
 
-function getRounds(list, player) {
+function getRounds(list, player){
   return list.filter(d => d.player === player);
 }
 
-async function loadData() {
+/* -------- LOAD DATA -------- */
+async function loadData(){
   document.getElementById("status").innerText = "Loading...";
 
   let res = await fetch(CSV_URL);
@@ -201,18 +203,21 @@ async function loadData() {
 
   let rows = parseCSV(text);
 
-  data = rows.map(r => ({
-    player: r.Player,
-    date: r.Date,
-    course: r.Course,
-    tee: r.Tee,
-    score: +r.Score,
-    rating: +r.Rating,
-    slope: +r.Slope
-  }));
+  data = rows.map(r => {
+    let score = safeNum(r.Score);
+    let rating = safeNum(r.Rating);
+    let slope = safeNum(r.Slope);
 
-  data.forEach(r => {
-    r.diff = diff(r.score, r.rating, r.slope);
+    return {
+      player: r.Player,
+      date: r.Date,
+      course: r.Course,
+      tee: r.Tee,
+      score,
+      rating,
+      slope,
+      diff: diff(score, rating, slope)
+    };
   });
 
   render();
@@ -221,11 +226,11 @@ async function loadData() {
     "Updated: " + new Date().toLocaleTimeString();
 }
 
-function render() {
+/* -------- RENDER -------- */
+function render(){
 
   let filtered = getFiltered();
 
-  // PLAYERS
   let playersDiv = document.getElementById("players");
   playersDiv.innerHTML = "";
 
@@ -237,14 +242,14 @@ function render() {
     let card = document.createElement("div");
     card.className = "card";
 
-    let diffsHTML = hcp.all
-      .sort((a,b)=>a-b)
-      .map(d => {
-        let used = hcp.used.includes(d);
-        return `<div class="diff-line" style="color:${used?'#1b6b3a':'#999'};font-weight:${used?'bold':'normal'}">
+    let diffsHTML = hcp.all.map(d => {
+      let used = hcp.used.includes(d);
+      return `
+        <div class="diff-line"
+        style="color:${used?'#1b6b3a':'#999'};font-weight:${used?'bold':'normal'}">
           ${d.toFixed(1)} ${used ? "✓" : ""}
         </div>`;
-      }).join("");
+    }).join("");
 
     card.innerHTML = `
       <div class="name">${p}</div>
@@ -259,11 +264,10 @@ function render() {
     playersDiv.appendChild(card);
   });
 
-  // TABLE
   let tbody = document.getElementById("rounds");
   tbody.innerHTML = "";
 
-  [...filtered]
+  filtered
     .sort((a,b)=> new Date(a.date) - new Date(b.date))
     .forEach(r => {
       tbody.innerHTML += `
