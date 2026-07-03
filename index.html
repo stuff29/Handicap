@@ -29,7 +29,7 @@ button {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 15px;
 }
 
@@ -46,7 +46,7 @@ button {
 }
 
 .hcp {
-  font-size: 28px;
+  font-size: 30px;
   margin: 10px 0;
   color: #1b6b3a;
 }
@@ -71,6 +71,11 @@ th, td {
 
 th {
   background: #e8f3ec;
+}
+
+.diff-line {
+  font-size: 12px;
+  margin: 2px 0;
 }
 </style>
 </head>
@@ -121,14 +126,14 @@ function parseCSV(text) {
   });
 }
 
-// WHS differential
+// Differential (WHS formula)
 function diff(score, rating, slope) {
   return ((score - rating) * 113 / slope);
 }
 
-// WHS Handicap Rule (best 8 of last 20 with table)
-function handicap(rounds) {
-  if (!rounds.length) return 0;
+// WHS handicap logic
+function handicapWithDetails(rounds) {
+  if (!rounds.length) return { index: 0, used: [], all: [] };
 
   let sorted = [...rounds]
     .sort((a,b)=> new Date(b.date) - new Date(a.date))
@@ -158,13 +163,18 @@ function handicap(rounds) {
   else if (n <= 19) count = 7;
   else count = 8;
 
-  let best = [...diffs].sort((a,b)=>a-b).slice(0, count);
+  let used = [...diffs].sort((a,b)=>a-b).slice(0, count);
 
-  let avg = best.reduce((a,b)=>a+b,0)/best.length;
+  let avg = used.reduce((a,b)=>a+b,0)/used.length;
 
-  return (avg * 0.96).toFixed(1);
+  return {
+    index: +(avg * 0.96).toFixed(1),
+    used,
+    all: diffs
+  };
 }
 
+// Time machine
 function setTime(date) {
   timeCursor = date ? new Date(date) : null;
   render();
@@ -215,35 +225,47 @@ function render() {
 
   let filtered = getFiltered();
 
-  // PLAYER CARDS
+  // PLAYERS
   let playersDiv = document.getElementById("players");
   playersDiv.innerHTML = "";
 
   getPlayers(filtered).forEach(p => {
 
     let rounds = getRounds(filtered, p);
-    let hcp = handicap(rounds);
+    let hcp = handicapWithDetails(rounds);
 
     let card = document.createElement("div");
     card.className = "card";
 
+    let diffsHTML = hcp.all
+      .sort((a,b)=>a-b)
+      .map(d => {
+        let used = hcp.used.includes(d);
+        return `<div class="diff-line" style="color:${used?'#1b6b3a':'#999'};font-weight:${used?'bold':'normal'}">
+          ${d.toFixed(1)} ${used ? "✓" : ""}
+        </div>`;
+      }).join("");
+
     card.innerHTML = `
       <div class="name">${p}</div>
-      <div class="hcp">${hcp}</div>
+      <div class="hcp">${hcp.index}</div>
       <div class="small">${rounds.length} rounds</div>
+      <div style="margin-top:10px;">
+        <b>Counting Scores</b>
+        ${diffsHTML}
+      </div>
     `;
 
     playersDiv.appendChild(card);
   });
 
-  // ROUNDS TABLE
+  // TABLE
   let tbody = document.getElementById("rounds");
   tbody.innerHTML = "";
 
   [...filtered]
     .sort((a,b)=> new Date(a.date) - new Date(b.date))
     .forEach(r => {
-
       tbody.innerHTML += `
         <tr>
           <td>${r.date}</td>
