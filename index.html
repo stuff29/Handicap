@@ -12,76 +12,70 @@ body {
   background: #f5f7f6;
 }
 
-h1 { text-align: center; }
+h1 { text-align:center; }
 
 .controls {
-  text-align: center;
-  margin-bottom: 20px;
+  text-align:center;
+  margin-bottom:20px;
 }
 
 button {
-  padding: 8px 12px;
-  margin: 5px;
-  cursor: pointer;
+  padding:8px 12px;
+  margin:5px;
+  cursor:pointer;
 }
 
 .grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 15px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:15px;
 }
 
 .card {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  cursor: pointer;
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+  cursor:pointer;
 }
 
-.name {
-  font-size: 18px;
-  font-weight: bold;
-}
+.name { font-size:18px; font-weight:bold; }
 
 .hcp {
-  font-size: 28px;
-  margin: 10px 0;
-  color: #1b6b3a;
+  font-size:28px;
+  margin:10px 0;
+  color:#1b6b3a;
 }
 
-.small {
-  color: #666;
-  font-size: 13px;
-}
+.small { color:#666; font-size:13px; }
 
 .diff-line {
-  font-size: 12px;
-  margin: 2px 0;
+  font-size:12px;
+  margin:2px 0;
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 13px;
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+  font-size:13px;
 }
 
-th, td {
-  padding: 6px;
-  border-bottom: 1px solid #ddd;
-  text-align: center;
+th,td {
+  padding:6px;
+  border-bottom:1px solid #ddd;
+  text-align:center;
 }
 
-th { background: #e8f3ec; }
+th { background:#e8f3ec; }
 
-.view { display: none; }
+.view { display:none; }
 
 canvas {
-  max-width: 100%;
-  background: white;
-  border-radius: 10px;
-  padding: 10px;
+  max-width:100%;
+  background:white;
+  border-radius:10px;
+  padding:10px;
 }
 </style>
 </head>
@@ -93,7 +87,7 @@ canvas {
 <div class="controls">
   <button onclick="loadData()">Refresh Data</button>
   <button onclick="setTime(null)">Live</button>
-  <button onclick="setTime(prompt('Enter YYYY-MM-DD'))">Time Machine</button>
+  <button onclick="setTime(prompt('YYYY-MM-DD'))">Time Machine</button>
   <button id="backBtn" onclick="back()" style="display:none;">← Back</button>
   <span id="status"></span>
 </div>
@@ -126,6 +120,7 @@ canvas {
         <th>Course</th>
         <th>Score</th>
         <th>Diff</th>
+        <th>Used?</th>
         <th>Handicap After</th>
       </tr>
     </thead>
@@ -137,35 +132,44 @@ canvas {
 
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
 
-let data = [];
-let timeCursor = null;
-let chartInstance = null;
+let data=[];
+let timeCursor=null;
+let chartInstance=null;
 
-/* -------- CSV -------- */
+/* ---------- CSV ---------- */
 function parseCSV(text){
-  const lines = text.trim().split("\n");
-  const headers = lines[0].split(",");
+  const lines=text.trim().split("\n");
+  const headers=lines[0].split(",");
   return lines.slice(1).map(l=>{
-    const v = l.split(",");
-    let o = {};
+    const v=l.split(",");
+    let o={};
     headers.forEach((h,i)=>o[h.trim()]=(v[i]||"").trim());
     return o;
   });
 }
 
-function safe(n){ return isNaN(+n) ? 0 : +n; }
+function safe(n){ return isNaN(+n)?0:+n; }
 
-/* -------- DIFFERENTIAL -------- */
+/* ---------- DIFFERENTIAL ---------- */
 function diff(score,rating,slope){
   return ((score-rating)*113/slope);
 }
 
-/* -------- WHS HANDICAP -------- */
-function handicapFromDiffs(diffs){
-  if(!diffs.length) return 0;
+/* ---------- WHS HANDICAP + MARKING ---------- */
+function handicapBreakdown(rounds){
 
-  let n = diffs.length;
-  let count = 1;
+  if(!rounds.length){
+    return { index:0, labels:[], usedFlags:[], series:[] };
+  }
+
+  let sorted=[...rounds]
+    .sort((a,b)=>new Date(a.date)-new Date(b.date))
+    .slice(-20);
+
+  let diffs=sorted.map(r=>r.diff);
+
+  let n=diffs.length;
+  let count=1;
 
   if(n<=4) count=1;
   else if(n<=8) count=2;
@@ -176,15 +180,48 @@ function handicapFromDiffs(diffs){
   else if(n===19) count=7;
   else count=8;
 
-  let best = [...diffs].sort((a,b)=>a-b).slice(0,count);
-  let avg = best.reduce((a,b)=>a+b,0)/best.length;
+  let sortedDiffs=[...diffs].sort((a,b)=>a-b);
+  let used=new Set(sortedDiffs.slice(0,count));
 
-  return +(avg*0.96).toFixed(1);
+  let usedArr=[];
+  let droppedArr=[];
+  let labels=[];
+  let series=[];
+
+  diffs.forEach((d,i)=>{
+    let isUsed=false;
+
+    // IMPORTANT: match by value + occurrence safety
+    let idx=sortedDiffs.indexOf(d);
+    if(idx>-1 && used.has(d)){
+      isUsed=true;
+      sortedDiffs.splice(idx,1);
+      used.delete(d);
+    }
+
+    labels.push(sorted[i].date);
+
+    usedArr.push(isUsed?d:null);
+    droppedArr.push(isUsed?null:d);
+
+    series.push(d);
+  });
+
+  let best=[...diffs].sort((a,b)=>a-b).slice(0,count);
+  let avg=best.reduce((a,b)=>a+b,0)/best.length;
+
+  return {
+    index:+(avg*0.96).toFixed(1),
+    labels,
+    usedArr,
+    droppedArr,
+    diffs
+  };
 }
 
-/* -------- TIME -------- */
+/* ---------- TIME ---------- */
 function setTime(d){
-  timeCursor = d ? new Date(d) : null;
+  timeCursor=d?new Date(d):null;
   render();
 }
 
@@ -193,7 +230,7 @@ function getFiltered(){
   return data.filter(r=>new Date(r.date)<=timeCursor);
 }
 
-/* -------- GLOBAL STATE -------- */
+/* ---------- HELPERS ---------- */
 function getPlayers(list){
   return [...new Set(list.map(d=>d.player))];
 }
@@ -201,16 +238,17 @@ function getRounds(list,p){
   return list.filter(d=>d.player===p);
 }
 
-/* -------- LOAD -------- */
+/* ---------- LOAD ---------- */
 async function loadData(){
+
   document.getElementById("status").innerText="Loading...";
 
-  let res = await fetch(CSV_URL);
-  let text = await res.text();
+  let res=await fetch(CSV_URL);
+  let text=await res.text();
 
-  let rows = parseCSV(text);
+  let rows=parseCSV(text);
 
-  data = rows.map(r=>({
+  data=rows.map(r=>({
     player:r.Player,
     date:r.Date,
     course:r.Course,
@@ -221,23 +259,25 @@ async function loadData(){
   }));
 
   data.forEach(r=>{
-    r.diff = diff(r.score,r.rating,r.slope);
+    r.diff=diff(r.score,r.rating,r.slope);
   });
 
   render();
 
-  document.getElementById("status").innerText="Updated "+new Date().toLocaleTimeString();
+  document.getElementById("status").innerText=
+    "Updated "+new Date().toLocaleTimeString();
 }
 
-/* -------- VIEW SWITCH -------- */
-function openPlayer(player){
+/* ---------- PLAYER VIEW ---------- */
+function openPlayer(p){
+
   document.getElementById("dashboard").style.display="none";
   document.getElementById("playerView").style.display="block";
   document.getElementById("backBtn").style.display="inline-block";
 
-  document.getElementById("playerName").innerText=player;
+  document.getElementById("playerName").innerText=p;
 
-  renderPlayer(player);
+  renderPlayer(p);
 }
 
 function back(){
@@ -246,78 +286,81 @@ function back(){
   document.getElementById("backBtn").style.display="none";
 }
 
-/* -------- PLAYER VIEW -------- */
+/* ---------- PLAYER RENDER ---------- */
 function renderPlayer(player){
 
-  let filtered = getFiltered().filter(r=>r.player===player)
+  let filtered=getFiltered()
+    .filter(r=>r.player===player)
     .sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-  let diffs = [];
-  let labels = [];
-  let hcpSeries = [];
+  let breakdown=handicapBreakdown(filtered);
 
-  filtered.forEach((r,i)=>{
-    diffs.push(r.diff);
-
-    let h = handicapFromDiffs(diffs);
-    hcpSeries.push(h);
-
-    labels.push(r.date);
-  });
-
-  let tbody = document.getElementById("playerRounds");
+  let tbody=document.getElementById("playerRounds");
   tbody.innerHTML="";
 
   filtered.forEach((r,i)=>{
-    tbody.innerHTML += `
+
+    let isUsed=breakdown.usedArr[i]!==null;
+
+    tbody.innerHTML+=`
       <tr>
         <td>${r.date}</td>
         <td>${r.course}</td>
         <td>${r.score}</td>
         <td>${r.diff.toFixed(1)}</td>
-        <td>${hcpSeries[i]}</td>
+        <td style="color:${isUsed?'#1b6b3a':'#999'}">
+          ${isUsed?'YES':'NO'}
+        </td>
+        <td>${breakdown.index}</td>
       </tr>
     `;
   });
 
-  drawChart(labels,hcpSeries);
+  drawChart(breakdown);
 }
 
-/* -------- CHART -------- */
-function drawChart(labels,data){
+/* ---------- CHART ---------- */
+function drawChart(b){
 
   if(chartInstance) chartInstance.destroy();
 
-  const ctx = document.getElementById("chart");
+  const ctx=document.getElementById("chart");
 
-  chartInstance = new Chart(ctx,{
+  chartInstance=new Chart(ctx,{
     type:"line",
     data:{
-      labels,
-      datasets:[{
-        label:"Handicap Index",
-        data,
-        borderColor:"#1b6b3a",
-        fill:false
-      }]
+      labels:b.labels,
+      datasets:[
+        {
+          label:"Used (Counting)",
+          data:b.usedArr,
+          borderColor:"#1b6b3a",
+          spanGaps:true
+        },
+        {
+          label:"Dropped",
+          data:b.droppedArr,
+          borderColor:"#999",
+          borderDash:[5,5],
+          spanGaps:true
+        }
+      ]
     }
   });
 }
 
-/* -------- RENDER DASHBOARD -------- */
+/* ---------- DASHBOARD ---------- */
 function render(){
 
-  let filtered = getFiltered();
+  let filtered=getFiltered();
 
-  let playersDiv = document.getElementById("players");
+  let playersDiv=document.getElementById("players");
   playersDiv.innerHTML="";
 
   getPlayers(filtered).forEach(p=>{
 
-    let rounds = getRounds(filtered,p);
-    let diffs = rounds.map(r=>r.diff);
-
-    let hcp = handicapFromDiffs(diffs);
+    let rounds=getRounds(filtered,p);
+    let breakdown=handicapBreakdown(rounds);
 
     let card=document.createElement("div");
     card.className="card";
@@ -325,7 +368,7 @@ function render(){
 
     card.innerHTML=`
       <div class="name">${p}</div>
-      <div class="hcp">${hcp}</div>
+      <div class="hcp">${breakdown.index}</div>
       <div class="small">${rounds.length} rounds</div>
     `;
 
@@ -355,7 +398,6 @@ loadData();
 
 </script>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
