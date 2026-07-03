@@ -49,11 +49,6 @@ button {
 
 .small { color:#666; font-size:13px; }
 
-.diff-line {
-  font-size:12px;
-  margin:2px 0;
-}
-
 table {
   width:100%;
   border-collapse:collapse;
@@ -76,6 +71,12 @@ canvas {
   background:white;
   border-radius:10px;
   padding:10px;
+}
+
+.explain {
+  font-size:12px;
+  color:#333;
+  margin-top:4px;
 }
 </style>
 </head>
@@ -112,16 +113,17 @@ canvas {
   <h2 id="playerName"></h2>
   <canvas id="chart" height="120"></canvas>
 
-  <h3>Rounds</h3>
+  <h3>Rounds (with Handicap Impact)</h3>
   <table>
     <thead>
       <tr>
         <th>Date</th>
         <th>Course</th>
-        <th>Score</th>
         <th>Diff</th>
-        <th>Used?</th>
+        <th>Used</th>
+        <th>Handicap Before</th>
         <th>Handicap After</th>
+        <th>Change</th>
       </tr>
     </thead>
     <tbody id="playerRounds"></tbody>
@@ -130,7 +132,7 @@ canvas {
 
 <script>
 
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
+const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
 
 let data=[];
 let timeCursor=null;
@@ -150,23 +152,15 @@ function parseCSV(text){
 
 function safe(n){ return isNaN(+n)?0:+n; }
 
-/* ---------- DIFFERENTIAL ---------- */
+/* ---------- DIFF ---------- */
 function diff(score,rating,slope){
   return ((score-rating)*113/slope);
 }
 
-/* ---------- WHS HANDICAP + MARKING ---------- */
-function handicapBreakdown(rounds){
+/* ---------- HANDICAP CORE ---------- */
+function handicapFromDiffs(diffs){
 
-  if(!rounds.length){
-    return { index:0, labels:[], usedFlags:[], series:[] };
-  }
-
-  let sorted=[...rounds]
-    .sort((a,b)=>new Date(a.date)-new Date(b.date))
-    .slice(-20);
-
-  let diffs=sorted.map(r=>r.diff);
+  if(!diffs.length) return 0;
 
   let n=diffs.length;
   let count=1;
@@ -180,43 +174,10 @@ function handicapBreakdown(rounds){
   else if(n===19) count=7;
   else count=8;
 
-  let sortedDiffs=[...diffs].sort((a,b)=>a-b);
-  let used=new Set(sortedDiffs.slice(0,count));
-
-  let usedArr=[];
-  let droppedArr=[];
-  let labels=[];
-  let series=[];
-
-  diffs.forEach((d,i)=>{
-    let isUsed=false;
-
-    // IMPORTANT: match by value + occurrence safety
-    let idx=sortedDiffs.indexOf(d);
-    if(idx>-1 && used.has(d)){
-      isUsed=true;
-      sortedDiffs.splice(idx,1);
-      used.delete(d);
-    }
-
-    labels.push(sorted[i].date);
-
-    usedArr.push(isUsed?d:null);
-    droppedArr.push(isUsed?null:d);
-
-    series.push(d);
-  });
-
   let best=[...diffs].sort((a,b)=>a-b).slice(0,count);
   let avg=best.reduce((a,b)=>a+b,0)/best.length;
 
-  return {
-    index:+(avg*0.96).toFixed(1),
-    labels,
-    usedArr,
-    droppedArr,
-    diffs
-  };
+  return +(avg*0.96).toFixed(1);
 }
 
 /* ---------- TIME ---------- */
@@ -286,6 +247,40 @@ function back(){
   document.getElementById("backBtn").style.display="none";
 }
 
+/* ---------- CORE HANDICAP TRACE ---------- */
+function buildTrace(rounds){
+
+  let sorted=[...rounds].sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  let trace=[];
+  let diffs=[];
+
+  sorted.forEach((r,i)=>{
+
+    diffs.push(r.diff);
+
+    let before=handicapFromDiffs(diffs.slice(0,-1));
+    let after=handicapFromDiffs(diffs);
+
+    let usedSet=new Set(
+      [...diffs].sort((a,b)=>a-b)
+        .slice(0, Math.min(8,diffs.length))
+    );
+
+    let isUsed = usedSet.has(r.diff);
+
+    trace.push({
+      ...r,
+      before,
+      after,
+      change:+(after-before).toFixed(2),
+      used:isUsed
+    });
+  });
+
+  return trace;
+}
+
 /* ---------- PLAYER RENDER ---------- */
 function renderPlayer(player){
 
@@ -293,34 +288,52 @@ function renderPlayer(player){
     .filter(r=>r.player===player)
     .sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-  let breakdown=handicapBreakdown(filtered);
+  let trace=buildTrace(filtered);
+
+  let labels=[], used=[], dropped=[], hcpSeries=[];
+
+  trace.forEach(t=>{
+    labels.push(t.date);
+    hcpSeries.push(t.after);
+    used.push(t.used?t.diff:null);
+    dropped.push(t.used?null:t.diff);
+  });
 
   let tbody=document.getElementById("playerRounds");
   tbody.innerHTML="";
 
-  filtered.forEach((r,i)=>{
-
-    let isUsed=breakdown.usedArr[i]!==null;
-
+  trace.forEach(t=>{
     tbody.innerHTML+=`
       <tr>
-        <td>${r.date}</td>
-        <td>${r.course}</td>
-        <td>${r.score}</td>
-        <td>${r.diff.toFixed(1)}</td>
-        <td style="color:${isUsed?'#1b6b3a':'#999'}">
-          ${isUsed?'YES':'NO'}
+        <td>${t.date}</td>
+        <td>${t.course}</td>
+        <td>${t.diff.toFixed(1)}</td>
+        <td style="color:${t.used?'#1b6b3a':'#999'}">${t.used?'YES':'NO'}</td>
+        <td>${t.before}</td>
+        <td>${t.after}</td>
+        <td style="color:${t.change>=0?'#1b6b3a':'#b00020'}">
+          ${t.change>0?'+':''}${t.change}
         </td>
-        <td>${breakdown.index}</td>
+      </tr>
+
+      <tr>
+        <td colspan="7" class="explain">
+          ${t.used
+            ? "This round entered the counting scores."
+            : "This round did not affect handicap (outside best scoring window)."}
+          ${t.change!==0
+            ? " Handicap adjusted due to recalculation of best scores."
+            : " No handicap change at this step."}
+        </td>
       </tr>
     `;
   });
 
-  drawChart(breakdown);
+  drawChart(trace);
 }
 
 /* ---------- CHART ---------- */
-function drawChart(b){
+function drawChart(trace){
 
   if(chartInstance) chartInstance.destroy();
 
@@ -329,20 +342,27 @@ function drawChart(b){
   chartInstance=new Chart(ctx,{
     type:"line",
     data:{
-      labels:b.labels,
+      labels:trace.map(t=>t.date),
       datasets:[
         {
-          label:"Used (Counting)",
-          data:b.usedArr,
+          label:"Handicap Index",
+          data:trace.map(t=>t.after),
           borderColor:"#1b6b3a",
-          spanGaps:true
+          fill:false
         },
         {
-          label:"Dropped",
-          data:b.droppedArr,
+          label:"Used Scores",
+          data:trace.map(t=>t.used?t.diff:null),
+          borderColor:"#1b6b3a",
+          pointBackgroundColor:"#1b6b3a",
+          showLine:false
+        },
+        {
+          label:"Dropped Scores",
+          data:trace.map(t=>t.used?null:t.diff),
           borderColor:"#999",
-          borderDash:[5,5],
-          spanGaps:true
+          pointBackgroundColor:"#999",
+          showLine:false
         }
       ]
     }
@@ -360,7 +380,8 @@ function render(){
   getPlayers(filtered).forEach(p=>{
 
     let rounds=getRounds(filtered,p);
-    let breakdown=handicapBreakdown(rounds);
+
+    let hcp=handicapFromDiffs(rounds.map(r=>r.diff));
 
     let card=document.createElement("div");
     card.className="card";
@@ -368,7 +389,7 @@ function render(){
 
     card.innerHTML=`
       <div class="name">${p}</div>
-      <div class="hcp">${breakdown.index}</div>
+      <div class="hcp">${hcp}</div>
       <div class="small">${rounds.length} rounds</div>
     `;
 
