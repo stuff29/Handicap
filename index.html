@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Golf Handicap Tracker</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #f5f7f6;
+}
+
+h1 {
+  text-align: center;
+}
+
+.controls {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+button {
+  padding: 8px 12px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.name {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.hcp {
+  font-size: 28px;
+  margin: 10px 0;
+  color: #1b6b3a;
+}
+
+.small {
+  color: #666;
+  font-size: 13px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  padding: 6px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+  font-size: 13px;
+}
+
+th {
+  background: #e8f3ec;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Golf Handicap Tracker</h1>
+
+<div class="controls">
+  <button onclick="loadData()">Refresh Data</button>
+  <span id="status"></span>
+</div>
+
+<div class="grid" id="players"></div>
+
+<h2 style="margin-top:30px;">All Rounds</h2>
+<table>
+<thead>
+<tr>
+  <th>Date</th>
+  <th>Player</th>
+  <th>Course</th>
+  <th>Tee</th>
+  <th>Score</th>
+  <th>Diff</th>
+</tr>
+</thead>
+<tbody id="rounds"></tbody>
+</table>
+
+<script>
+
+const CSV_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
+
+let data = [];
+
+function parseCSV(text) {
+  const lines = text.trim().split("\n");
+  const headers = lines[0].split(",");
+
+  return lines.slice(1).map(line => {
+    const values = line.split(",");
+    let obj = {};
+    headers.forEach((h,i)=> obj[h.trim()] = values[i]);
+    return obj;
+  });
+}
+
+// WHS differential
+function diff(score, rating, slope) {
+  return ((score - rating) * 113 / slope);
+}
+
+// Handicap (simple WHS approximation: best 8 of last 20)
+function handicap(rounds) {
+  let diffs = rounds.map(r => r.diff).sort((a,b)=>a-b);
+  if(diffs.length === 0) return 0;
+
+  let count = Math.min(8, diffs.length);
+  let best = diffs.slice(0, count);
+
+  let avg = best.reduce((a,b)=>a+b,0)/best.length;
+
+  return (avg * 0.96).toFixed(1);
+}
+
+async function loadData() {
+  document.getElementById("status").innerText = "Loading...";
+
+  let res = await fetch(CSV_URL);
+  let text = await res.text();
+
+  let rows = parseCSV(text);
+
+  data = rows.map(r => ({
+    player: r.Player,
+    date: r.Date,
+    course: r.Course,
+    tee: r.Tee,
+    score: parseFloat(r.Score),
+    rating: parseFloat(r.Rating),
+    slope: parseFloat(r.Slope),
+  }));
+
+  data.forEach(r => {
+    r.diff = diff(r.score, r.rating, r.slope);
+  });
+
+  render();
+
+  document.getElementById("status").innerText = "Updated: " + new Date().toLocaleTimeString();
+}
+
+function getPlayers() {
+  return [...new Set(data.map(d => d.player))];
+}
+
+function getRounds(player) {
+  return data.filter(d => d.player === player);
+}
+
+function render() {
+
+  let playersDiv = document.getElementById("players");
+  playersDiv.innerHTML = "";
+
+  getPlayers().forEach(p => {
+
+    let rounds = getRounds(p);
+    let hcp = handicap(rounds);
+
+    let card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <div class="name">${p}</div>
+      <div class="hcp">${hcp}</div>
+      <div class="small">${rounds.length} rounds</div>
+    `;
+
+    playersDiv.appendChild(card);
+  });
+
+  let tbody = document.getElementById("rounds");
+  tbody.innerHTML = "";
+
+  data
+    .sort((a,b)=> new Date(a.date) - new Date(b.date))
+    .forEach(r => {
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${r.date}</td>
+          <td>${r.player}</td>
+          <td>${r.course}</td>
+          <td>${r.tee}</td>
+          <td>${r.score}</td>
+          <td>${r.diff.toFixed(1)}</td>
+        </tr>
+      `;
+    });
+}
+
+loadData();
+
+</script>
+
+</body>
+</html>
