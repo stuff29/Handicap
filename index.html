@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>WHS Golf Tracker + Goal Engine</title>
+<title>WHS Golf Tracker + Goal Solver</title>
 
 <style>
 body{
@@ -78,7 +78,7 @@ th{background:#e8f3ec;}
 
 <body>
 
-<h1>Golf Handicap Tracker (WHS + Goal Engine)</h1>
+<h1>Golf Handicap Tracker (Goal Solver Engine)</h1>
 
 <div class="controls">
   <button onclick="load()">Refresh</button>
@@ -95,22 +95,14 @@ th{background:#e8f3ec;}
 
   <canvas id="chart" height="120"></canvas>
 
-  <!-- WHAT IF -->
+  <!-- GOAL SOLVER -->
   <div class="simBox">
-    <b>What-If Simulator</b><br><br>
-    <input id="simInput" placeholder="Score">
-    <button onclick="simulate()">Run</button>
-    <div id="simOut"></div>
-  </div>
+    <b>Goal Solver (NEW)</b><br><br>
 
-  <!-- GOAL TRACKER -->
-  <div class="simBox">
-    <b>Goal Tracker</b><br><br>
-
-    Target:
+    Target Handicap:
     <select id="targetHcp">
-      <option value="10">Break 10 (Mike)</option>
-      <option value="15">Break 15 (Johnny)</option>
+      <option value="10">10 (Mike)</option>
+      <option value="15">15 (Johnny)</option>
     </select>
 
     <br><br>
@@ -120,10 +112,7 @@ th{background:#e8f3ec;}
 
     <br><br>
 
-    Assumed score each round:
-    <input id="futureScore" placeholder="e.g. 82">
-
-    <button onclick="projectGoal()">Simulate Goal Path</button>
+    <button onclick="solveGoal()">Calculate Required Average Score</button>
 
     <div id="goalOut"></div>
   </div>
@@ -160,20 +149,20 @@ function parseCSV(t){
   return l.slice(1).map(r=>{
     const v=r.split(",");
     let o={};
-    h.forEach((x,i)=>o[x.trim()]=(v[i]||"").trim());
+    h.forEach((x,i)=>o[x.trim()] = (v[i]||"").trim());
     return o;
   });
 }
 
 const n=x=>isNaN(+x)?0:+x;
 
-/* ---------- WHS ---------- */
+/* ---------- WHS INDEX ---------- */
 function index(arr){
   if(!arr.length) return 0;
 
-  const sorted=[...arr].sort((a,b)=>a-b);
-  const use=Math.min(8,sorted.length);
-  const best=sorted.slice(0,use);
+  const s=[...arr].sort((a,b)=>a-b);
+  const use=Math.min(8,s.length);
+  const best=s.slice(0,use);
 
   return +(best.reduce((a,b)=>a+b,0)/best.length*0.96).toFixed(1);
 }
@@ -283,47 +272,53 @@ function open(p){
   document.getElementById("playerName").innerText=p;
 }
 
-/* ---------- WHAT IF ---------- */
-function simulate(){
-
-  let v=n(document.getElementById("simInput").value);
-
-  let r=rounds(data,current);
-
-  let sim=[...r,{diff:v}];
-
-  document.getElementById("simOut").innerHTML=
-    "Projected Index: "+index(sim.map(x=>x.diff));
-}
-
-/* ---------- GOAL ENGINE ---------- */
-function projectGoal(){
+/* ---------- GOAL SOLVER ---------- */
+function solveGoal(){
 
   const target=+document.getElementById("targetHcp").value;
-  const nR=+document.getElementById("futureRounds").value;
-  const score=+document.getElementById("futureScore").value;
-
-  if(!score||!nR) return;
+  const N=+document.getElementById("futureRounds").value;
 
   let r=rounds(data,current);
+  let currentIndex=index(r.map(x=>x.diff));
 
-  let sim=[...r];
+  /*
+    We approximate WHS sensitivity:
+    each stroke ≈ 1.0 index shift over small samples
+  */
 
-  for(let i=0;i<nR;i++){
-    sim.push({
-      diff: ((score-(r[0]?.rating||72))*113/(r[0]?.slope||113))
-    });
-  }
+  let gap=currentIndex-target;
 
-  let proj=index(sim.map(x=>x.diff));
-  let curr=index(r.map(x=>x.diff));
+  let requiredIndexChange = -gap;
+
+  let requiredTotalDiffChange = requiredIndexChange / 0.96;
+
+  let currentAvg=r.length
+    ? r.reduce((a,b)=>a+b.diff,0)/r.length
+    : 0;
+
+  let requiredFutureAvg =
+    currentAvg + (requiredTotalDiffChange / N);
+
+  /*
+    convert diff back to score estimate
+    diff = (score - rating) * 113 / slope
+  */
+
+  let rating=r[0]?.rating || 72;
+  let slope=r[0]?.slope || 113;
+
+  let requiredScore =
+    (requiredFutureAvg * slope / 113) + rating;
 
   document.getElementById("goalOut").innerHTML=`
     <br>
-    Current: <b>${curr}</b><br>
-    Projected: <b>${proj}</b><br>
-    Target: <b>${target}</b><br>
-    Gap: <b>${(proj-target).toFixed(2)}</b>
+    Current Index: <b>${currentIndex}</b><br>
+    Target: <b>${target}</b><br><br>
+
+    Required Average Differential: <b>${requiredFutureAvg.toFixed(2)}</b><br>
+    Required Average Score: <b>${requiredScore.toFixed(1)}</b><br><br>
+
+    Over next ${N} rounds.
   `;
 }
 
