@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Golf Handicap Tracker (WHS)</title>
+<title>WHS Golf Handicap Tracker</title>
 
 <style>
 body{
@@ -40,13 +40,7 @@ button{
 }
 
 .name{font-size:18px;font-weight:bold;}
-
-.hcp{
-  font-size:28px;
-  color:#1b6b3a;
-  margin:10px 0;
-}
-
+.hcp{font-size:28px;color:#1b6b3a;margin:10px 0;}
 .small{font-size:13px;color:#666;}
 
 table{
@@ -84,27 +78,15 @@ canvas{
 
 <body>
 
-<h1>Golf Handicap Tracker (WHS Accurate)</h1>
+<h1>Golf Handicap Tracker (WHS Replica Engine)</h1>
 
 <div class="controls">
-  <button onclick="loadData()">Refresh</button>
+  <button onclick="load()">Refresh</button>
   <button onclick="back()">Back</button>
 </div>
 
 <div id="dashboard">
   <div class="grid" id="players"></div>
-
-  <h2>Monthly Handicap Snapshot</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Month</th>
-        <th>Player</th>
-        <th>Handicap Index</th>
-      </tr>
-    </thead>
-    <tbody id="monthly"></tbody>
-  </table>
 </div>
 
 <div id="playerView" class="view">
@@ -115,24 +97,24 @@ canvas{
 
   <div class="simBox">
     <b>What-If Simulator</b><br><br>
-    <input id="simInput" placeholder="Enter score">
+    <input id="simInput" placeholder="Score">
     <button onclick="simulate()">Run</button>
     <div id="simOut"></div>
   </div>
 
-  <h3>Round Breakdown (WHS Logic)</h3>
+  <h3>Round Breakdown (WHS True Recalc)</h3>
 
   <table>
     <thead>
       <tr>
         <th>Date</th>
         <th>Diff</th>
-        <th>Used</th>
-        <th>Reason</th>
+        <th>Counting</th>
         <th>Index After</th>
+        <th>Change Reason</th>
       </tr>
     </thead>
-    <tbody id="playerRounds"></tbody>
+    <tbody id="rows"></tbody>
   </table>
 </div>
 
@@ -140,96 +122,75 @@ canvas{
 
 <script>
 
-const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
+const CSV="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
 
 let data=[];
-let currentPlayer=null;
+let current=null;
 let chart=null;
 
-/* ---------- CSV ---------- */
-function parseCSV(t){
+/* ---------- PARSE ---------- */
+function parse(t){
   const l=t.trim().split("\n");
   const h=l[0].split(",");
   return l.slice(1).map(r=>{
     const v=r.split(",");
     let o={};
-    h.forEach((x,i)=>o[x.trim()] = (v[i]||"").trim());
+    h.forEach((x,i)=>o[x.trim()]=(v[i]||"").trim());
     return o;
   });
 }
 
-const num=n=>isNaN(+n)?0:+n;
-
-function diff(score,rating,slope){
-  return ((score-rating)*113/slope);
-}
+const n=x=>isNaN(+x)?0:+x;
 
 /* ---------- WHS CORE ---------- */
+function index(arr){
+  if(!arr.length) return 0;
+
+  const sorted=[...arr].sort((a,b)=>a-b);
+
+  const use=Math.min(8,sorted.length);
+
+  const best=sorted.slice(0,use);
+
+  return +(best.reduce((a,b)=>a+b,0)/best.length*0.96).toFixed(1);
+}
+
 function best8(arr){
   return [...arr].sort((a,b)=>a-b).slice(0,8);
 }
 
-function index(arr){
-  if(arr.length<1) return 0;
-  const use=Math.min(8,arr.length);
-  const best=[...arr].sort((a,b)=>a-b).slice(0,use);
-  return +(best.reduce((a,b)=>a+b,0)/best.length*0.96).toFixed(1);
-}
-
-/* ---------- MONTHLY ---------- */
-function monthlySnapshot(r){
-
-  let months={};
-
-  r.forEach(x=>{
-    let m=x.date.slice(0,7);
-    if(!months[m]) months[m]=[];
-    months[m].push(x.diff);
-  });
-
-  let out=[];
-
-  Object.keys(months).sort().forEach(m=>{
-    out.push({
-      month:m,
-      hcp:index(months[m])
-    });
-  });
-
-  return out;
-}
-
 /* ---------- LOAD ---------- */
-async function loadData(){
+async function load(){
 
-  const r=await fetch(CSV_URL);
+  const r=await fetch(CSV);
   const t=await r.text();
 
-  const rows=parseCSV(t);
+  const rows=parse(t);
 
   data=rows.map(x=>({
     player:x.Player,
     date:x.Date,
     course:x.Course,
-    score:num(x.Score),
-    rating:num(x.Rating),
-    slope:num(x.Slope)
+    score:n(x.Score),
+    rating:n(x.Rating),
+    slope:n(x.Slope)
   }));
 
   data.forEach(r=>{
-    r.diff=diff(r.score,r.rating,r.slope);
+    r.diff=((r.score-r.rating)*113/r.slope);
   });
 
   render();
 }
 
-/* ---------- FILTER ---------- */
+/* ---------- GROUP ---------- */
 function players(d){
   return [...new Set(d.map(x=>x.player))];
 }
 
 function rounds(d,p){
-  return d.filter(x=>x.player===p);
+  return d.filter(x=>x.player===p)
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
 }
 
 /* ---------- DASHBOARD ---------- */
@@ -246,7 +207,7 @@ function render(){
 
     let c=document.createElement("div");
     c.className="card";
-    c.onclick=()=>openPlayer(p);
+    c.onclick=()=>open(p);
 
     c.innerHTML=`
       <div class="name">${p}</div>
@@ -256,66 +217,41 @@ function render(){
 
     div.appendChild(c);
   });
-
-  renderMonthly();
 }
 
-/* ---------- MONTHLY TABLE ---------- */
-function renderMonthly(){
+/* ---------- PLAYER VIEW ---------- */
+function open(p){
 
-  let tb=document.getElementById("monthly");
-  tb.innerHTML="";
-
-  players(data).forEach(p=>{
-
-    let r=rounds(data,p).sort((a,b)=>new Date(a.date)-new Date(b.date));
-
-    monthlySnapshot(r).forEach(m=>{
-      tb.innerHTML+=`
-        <tr>
-          <td>${m.month}</td>
-          <td>${p}</td>
-          <td>${m.hcp}</td>
-        </tr>
-      `;
-    });
-
-  });
-}
-
-/* ---------- PLAYER ---------- */
-function openPlayer(p){
-  currentPlayer=p;
+  current=p;
 
   document.getElementById("dashboard").style.display="none";
   document.getElementById("playerView").style.display="block";
 
-  let r=rounds(data,p).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let r=rounds(data,p);
 
-  let diffs=r.map(x=>x.diff);
-
-  let use=Math.min(8,diffs.length);
-
-  let best=new Set(best8(diffs));
+  let out=document.getElementById("rows");
+  out.innerHTML="";
 
   let labels=[],vals=[];
 
-  document.getElementById("playerRounds").innerHTML="";
-
   r.forEach((x,i)=>{
 
-    let after=index(r.slice(0,i+1).map(z=>z.diff));
+    let slice=r.slice(0,i+1);
+
+    let h=index(slice.map(z=>z.diff));
+
+    let used=new Set(best8(slice.map(z=>z.diff)));
 
     labels.push(x.date);
-    vals.push(after);
+    vals.push(h);
 
-    document.getElementById("playerRounds").innerHTML+=`
+    out.innerHTML+=`
       <tr>
         <td>${x.date}</td>
         <td>${x.diff.toFixed(1)}</td>
-        <td>${best.has(x.diff)?"YES":"NO"}</td>
-        <td>${best.has(x.diff)?"Counting":"Dropped"}</td>
-        <td>${after}</td>
+        <td>${used.has(x.diff)?"YES":"NO"}</td>
+        <td>${h}</td>
+        <td>Recalc WHS rolling best 8</td>
       </tr>
     `;
   });
@@ -323,6 +259,19 @@ function openPlayer(p){
   draw(labels,vals);
 
   document.getElementById("playerName").innerText=p;
+}
+
+/* ---------- SIM ---------- */
+function simulate(){
+
+  let v=n(document.getElementById("simInput").value);
+
+  let r=rounds(data,current);
+
+  let sim=[...r,{diff:v}];
+
+  document.getElementById("simOut").innerHTML=
+    "Simulated Index: "+index(sim.map(x=>x.diff));
 }
 
 /* ---------- CHART ---------- */
@@ -335,7 +284,7 @@ function draw(l,d){
     data:{
       labels:l,
       datasets:[{
-        label:"Handicap Index",
+        label:"Handicap",
         data:d,
         borderColor:"#1b6b3a",
         fill:false
@@ -344,29 +293,13 @@ function draw(l,d){
   });
 }
 
-/* ---------- SIM ---------- */
-function simulate(){
-
-  let v=+document.getElementById("simInput").value;
-  if(!v) return;
-
-  let r=rounds(data,currentPlayer);
-
-  let sim=[...r,{
-    diff:v
-  }];
-
-  document.getElementById("simOut").innerHTML=
-    "Simulated Index: "+index(sim.map(x=>x.diff));
-}
-
 /* ---------- BACK ---------- */
 function back(){
   document.getElementById("dashboard").style.display="block";
   document.getElementById("playerView").style.display="none";
 }
 
-loadData();
+load();
 
 </script>
 
