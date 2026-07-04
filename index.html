@@ -110,7 +110,6 @@ canvas{
 
   <canvas id="chart" height="120"></canvas>
 
-  <!-- 🧪 WHAT IF BOX -->
   <div class="simBox">
     <b>What-If Simulator</b><br><br>
     <input id="simInput" placeholder="Enter score (e.g. 82)">
@@ -127,7 +126,6 @@ canvas{
         <th>Diff</th>
         <th>Used</th>
         <th>Handicap</th>
-        <th>Change</th>
         <th>Note</th>
       </tr>
     </thead>
@@ -135,214 +133,200 @@ canvas{
   </table>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 
-const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
 
-let data=[];
-let timeCursor=null;
-let currentPlayer=null;
-let chartInstance=null;
+let data = [];
+let currentPlayer = null;
+let timeCursor = null;
+let chartInstance = null;
 
 /* ---------- CSV ---------- */
 function parseCSV(t){
-  const l=t.trim().split("\n");
-  const h=l[0].split(",");
+  const l = t.trim().split("\n");
+  const h = l[0].split(",");
   return l.slice(1).map(r=>{
-    const v=r.split(",");
-    let o={};
-    h.forEach((x,i)=>o[x.trim()]=(v[i]||"").trim());
+    const v = r.split(",");
+    let o = {};
+    h.forEach((x,i)=>o[x.trim()] = (v[i] || "").trim());
     return o;
   });
 }
 
-function safe(n){return isNaN(+n)?0:+n;}
+function num(n){ return isNaN(+n) ? 0 : +n; }
 
 function diff(s,r,sl){
-  return ((s-r)*113/sl);
+  return ((s - r) * 113 / sl);
 }
 
 /* ---------- HANDICAP ---------- */
 function count(n){
-  if(n<=4) return 1;
-  if(n<=8) return 2;
-  if(n<=11) return 3;
-  if(n<=14) return 4;
-  if(n<=16) return 5;
-  if(n<=18) return 6;
-  if(n===19) return 7;
+  if(n <= 4) return 1;
+  if(n <= 8) return 2;
+  if(n <= 11) return 3;
+  if(n <= 14) return 4;
+  if(n <= 16) return 5;
+  if(n <= 18) return 6;
+  if(n === 19) return 7;
   return 8;
 }
 
-function hcp(d){
-  if(!d.length) return 0;
-  let c=count(d.length);
-  let b=[...d].sort((a,b)=>a-b).slice(0,c);
+function handicap(ds){
+  if(!ds.length) return 0;
+
+  let c = count(ds.length);
+  let b = [...ds].sort((a,b)=>a-b).slice(0,c);
+
   return +((b.reduce((a,b)=>a+b,0)/b.length)*0.96).toFixed(1);
 }
 
-/* ---------- WHAT IF ---------- */
-function simulate(player,score){
-
-  let rounds=getRounds(getFiltered(),player);
-
-  let sim=[...rounds];
-
-  // fake slope/rating assumption using avg
-  let avgRating=sim.length?sim[0].rating||72:72;
-  let avgSlope=sim.length?sim[0].slope||113:113;
-
-  sim.push({
-    player,
-    date:"SIM",
-    course:"What-If",
-    tee:"",
-    score:+score,
-    rating:avgRating,
-    slope:avgSlope,
-    diff:diff(+score,avgRating,avgSlope)
-  });
-
-  let before=hcp(rounds.map(r=>r.diff));
-  let after=hcp(sim.map(r=>r.diff));
-
-  return {before,after,change:(after-before).toFixed(2)};
-}
-
-/* ---------- TIME ---------- */
-function setTime(d){
-  timeCursor=d?new Date(d):null;
-  render();
-}
-
-function getFiltered(){
+/* ---------- FILTER ---------- */
+function filtered(){
   if(!timeCursor) return data;
-  return data.filter(r=>new Date(r.date)<=timeCursor);
+  return data.filter(r => new Date(r.date) <= timeCursor);
 }
 
 /* ---------- HELPERS ---------- */
-function getPlayers(l){return [...new Set(l.map(d=>d.player))];}
-function getRounds(l,p){return l.filter(d=>d.player===p);}
+function getPlayers(l){
+  return [...new Set(l.map(d => d.player))];
+}
+
+function getRounds(l,p){
+  return l.filter(d => d.player === p);
+}
 
 /* ---------- LOAD ---------- */
 async function loadData(){
 
-  document.getElementById("status").innerText="Loading...";
+  document.getElementById("status").innerText = "Loading...";
 
-  let r=await fetch(CSV_URL);
-  let t=await r.text();
+  const r = await fetch(CSV_URL);
+  const t = await r.text();
 
-  let rows=parseCSV(t);
+  const rows = parseCSV(t);
 
-  data=rows.map(x=>({
-    player:x.Player,
-    date:x.Date,
-    course:x.Course,
-    tee:x.Tee,
-    score:safe(x.Score),
-    rating:safe(x.Rating),
-    slope:safe(x.Slope)
+  data = rows.map(x => ({
+    player: x.Player,
+    date: x.Date,
+    course: x.Course,
+    tee: x.Tee,
+    score: num(x.Score),
+    rating: num(x.Rating),
+    slope: num(x.Slope)
   }));
 
   data.forEach(r=>{
-    r.diff=diff(r.score,r.rating,r.slope);
+    r.diff = diff(r.score, r.rating, r.slope);
   });
 
   render();
-
-  document.getElementById("status").innerText=
-    "Updated "+new Date().toLocaleTimeString();
+  document.getElementById("status").innerText = "Loaded";
 }
 
-/* ---------- PLAYER ---------- */
+/* ---------- VIEW ---------- */
 function openPlayer(p){
-  currentPlayer=p;
-
-  document.getElementById("dashboard").style.display="none";
-  document.getElementById("playerView").style.display="block";
-  document.getElementById("backBtn").style.display="inline-block";
-
-  document.getElementById("playerName").innerText=p;
-
-  renderPlayer(p);
+  currentPlayer = p;
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("playerView").style.display = "block";
+  document.getElementById("playerName").innerText = p;
+  renderPlayer();
 }
 
 function back(){
-  document.getElementById("dashboard").style.display="block";
-  document.getElementById("playerView").style.display="none";
-  document.getElementById("backBtn").style.display="none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("playerView").style.display = "none";
 }
 
-/* ---------- SIM ---------- */
+/* ---------- WHAT-IF ---------- */
 function runSim(){
 
-  let val=document.getElementById("simInput").value;
-
+  const val = +document.getElementById("simInput").value;
   if(!val) return;
 
-  let res=simulate(currentPlayer,val);
+  const rounds = getRounds(filtered(), currentPlayer);
 
-  document.getElementById("simResult").innerHTML=
-    `<br><b>Current:</b> ${res.before}
-     <br><b>After:</b> ${res.after}
-     <br><b>Change:</b> ${res.change}`;
+  const sim = [...rounds];
+
+  const rating = sim[0]?.rating || 72;
+  const slope = sim[0]?.slope || 113;
+
+  sim.push({
+    player: currentPlayer,
+    date: "SIM",
+    course: "What-If",
+    tee: "",
+    score: val,
+    rating,
+    slope,
+    diff: diff(val, rating, slope)
+  });
+
+  const before = handicap(rounds.map(r=>r.diff));
+  const after = handicap(sim.map(r=>r.diff));
+
+  document.getElementById("simResult").innerHTML =
+    `<br><b>Current:</b> ${before}
+     <br><b>After:</b> ${after}
+     <br><b>Change:</b> ${(after-before).toFixed(2)}`;
 }
 
-/* ---------- PLAYER VIEW ---------- */
-function renderPlayer(p){
+/* ---------- PLAYER ---------- */
+function renderPlayer(){
 
-  let f=getFiltered().filter(r=>r.player===p)
-    .sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const r = getRounds(filtered(), currentPlayer)
+    .sort((a,b)=>new Date(a.date) - new Date(b.date));
 
-  let d=f.map(x=>x.diff);
+  const ds = r.map(x => x.diff);
 
-  let c=count(d.length);
+  const c = count(ds.length);
 
-  let used=new Set([...d].sort((a,b)=>a-b).slice(0,c));
+  const used = new Set([...ds].sort((a,b)=>a-b).slice(0,c));
 
-  let tbody=document.getElementById("playerRounds");
-  tbody.innerHTML="";
+  const tb = document.getElementById("playerRounds");
+  tb.innerHTML = "";
 
-  let labels=[],vals=[];
+  const labels = [];
+  const vals = [];
 
-  f.forEach(r=>{
-    let isUsed=used.has(r.diff);
+  r.forEach((x, idx)=>{
 
-    let h=hcp(f.slice(0,f.indexOf(r)+1).map(x=>x.diff));
+    const h = handicap(r.slice(0, idx+1).map(z=>z.diff));
 
-    labels.push(r.date);
+    labels.push(x.date);
     vals.push(h);
 
-    tbody.innerHTML+=`
+    tb.innerHTML += `
       <tr>
-        <td>${r.date}</td>
-        <td>${r.course}</td>
-        <td>${r.diff.toFixed(1)}</td>
-        <td style="color:${isUsed?'#1b6b3a':'#999'}">${isUsed?'YES':'NO'}</td>
+        <td>${x.date}</td>
+        <td>${x.course}</td>
+        <td>${x.diff.toFixed(1)}</td>
+        <td>${used.has(x.diff) ? "YES" : "NO"}</td>
         <td>${h}</td>
-        <td>-</td>
-        <td>${isUsed?'Counting':'Dropped'}</td>
+        <td>${used.has(x.diff) ? "Counting" : "Dropped"}</td>
       </tr>
     `;
   });
 
-  drawChart(labels,vals);
+  draw(labels, vals);
 }
 
 /* ---------- CHART ---------- */
-function drawChart(l,d){
+function draw(l,d){
 
   if(chartInstance) chartInstance.destroy();
 
-  chartInstance=new Chart(document.getElementById("chart"),{
-    type:"line",
-    data:{
-      labels:l,
-      datasets:[{
-        label:"Handicap",
-        data:d,
-        borderColor:"#1b6b3a",
-        fill:false
+  chartInstance = new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: {
+      labels: l,
+      datasets: [{
+        label: "Handicap",
+        data: d,
+        borderColor: "#1b6b3a",
+        fill: false
       }]
     }
   });
@@ -351,22 +335,22 @@ function drawChart(l,d){
 /* ---------- DASHBOARD ---------- */
 function render(){
 
-  let f=getFiltered();
+  const f = filtered();
 
-  let div=document.getElementById("players");
-  div.innerHTML="";
+  const div = document.getElementById("players");
+  div.innerHTML = "";
 
   getPlayers(f).forEach(p=>{
 
-    let r=getRounds(f,p);
+    const r = getRounds(f,p);
 
-    let h=hcp(r.map(x=>x.diff));
+    const h = handicap(r.map(x=>x.diff));
 
-    let c=document.createElement("div");
-    c.className="card";
-    c.onclick=()=>openPlayer(p);
+    const c = document.createElement("div");
+    c.className = "card";
+    c.onclick = () => openPlayer(p);
 
-    c.innerHTML=`
+    c.innerHTML = `
       <div class="name">${p}</div>
       <div class="hcp">${h}</div>
       <div class="small">${r.length} rounds</div>
@@ -375,28 +359,26 @@ function render(){
     div.appendChild(c);
   });
 
-  let tb=document.getElementById("rounds");
-  tb.innerHTML="";
+  const tb = document.getElementById("rounds");
+  tb.innerHTML = "";
 
-  f.sort((a,b)=>new Date(a.date)-new Date(b.date))
-    .forEach(r=>{
-      tb.innerHTML+=`
-        <tr>
-          <td>${r.date}</td>
-          <td>${r.player}</td>
-          <td>${r.course}</td>
-          <td>${r.tee}</td>
-          <td>${r.score}</td>
-          <td>${r.diff.toFixed(1)}</td>
-        </tr>`;
-    });
+  f.forEach(r=>{
+    tb.innerHTML += `
+      <tr>
+        <td>${r.date}</td>
+        <td>${r.player}</td>
+        <td>${r.course}</td>
+        <td>${r.tee}</td>
+        <td>${r.score}</td>
+        <td>${r.diff.toFixed(1)}</td>
+      </tr>
+    `;
+  });
 }
 
 loadData();
 
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
 </html>
