@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>WHS Golf Handicap Tracker</title>
+<title>WHS Golf Tracker + Goal Engine</title>
 
 <style>
 body{
@@ -43,21 +43,6 @@ button{
 .hcp{font-size:28px;color:#1b6b3a;margin:10px 0;}
 .small{font-size:13px;color:#666;}
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:15px;
-  font-size:13px;
-}
-
-th,td{
-  border-bottom:1px solid #ddd;
-  padding:6px;
-  text-align:center;
-}
-
-th{background:#e8f3ec;}
-
 .view{display:none;}
 
 canvas{
@@ -73,12 +58,27 @@ canvas{
   padding:10px;
   border-radius:10px;
 }
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px;
+  font-size:13px;
+}
+
+th,td{
+  border-bottom:1px solid #ddd;
+  padding:6px;
+  text-align:center;
+}
+
+th{background:#e8f3ec;}
 </style>
 </head>
 
 <body>
 
-<h1>Golf Handicap Tracker (WHS Replica Engine)</h1>
+<h1>Golf Handicap Tracker (WHS + Goal Engine)</h1>
 
 <div class="controls">
   <button onclick="load()">Refresh</button>
@@ -95,6 +95,7 @@ canvas{
 
   <canvas id="chart" height="120"></canvas>
 
+  <!-- WHAT IF -->
   <div class="simBox">
     <b>What-If Simulator</b><br><br>
     <input id="simInput" placeholder="Score">
@@ -102,7 +103,32 @@ canvas{
     <div id="simOut"></div>
   </div>
 
-  <h3>Round Breakdown (WHS True Recalc)</h3>
+  <!-- GOAL TRACKER -->
+  <div class="simBox">
+    <b>Goal Tracker</b><br><br>
+
+    Target:
+    <select id="targetHcp">
+      <option value="10">Break 10 (Mike)</option>
+      <option value="15">Break 15 (Johnny)</option>
+    </select>
+
+    <br><br>
+
+    Next rounds:
+    <input id="futureRounds" type="number" value="5" min="1" max="20">
+
+    <br><br>
+
+    Assumed score each round:
+    <input id="futureScore" placeholder="e.g. 82">
+
+    <button onclick="projectGoal()">Simulate Goal Path</button>
+
+    <div id="goalOut"></div>
+  </div>
+
+  <h3>Round Breakdown</h3>
 
   <table>
     <thead>
@@ -111,7 +137,6 @@ canvas{
         <th>Diff</th>
         <th>Counting</th>
         <th>Index After</th>
-        <th>Change Reason</th>
       </tr>
     </thead>
     <tbody id="rows"></tbody>
@@ -122,14 +147,14 @@ canvas{
 
 <script>
 
-const CSV="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
+const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
 
 let data=[];
 let current=null;
 let chart=null;
 
 /* ---------- PARSE ---------- */
-function parse(t){
+function parseCSV(t){
   const l=t.trim().split("\n");
   const h=l[0].split(",");
   return l.slice(1).map(r=>{
@@ -142,14 +167,12 @@ function parse(t){
 
 const n=x=>isNaN(+x)?0:+x;
 
-/* ---------- WHS CORE ---------- */
+/* ---------- WHS ---------- */
 function index(arr){
   if(!arr.length) return 0;
 
   const sorted=[...arr].sort((a,b)=>a-b);
-
   const use=Math.min(8,sorted.length);
-
   const best=sorted.slice(0,use);
 
   return +(best.reduce((a,b)=>a+b,0)/best.length*0.96).toFixed(1);
@@ -162,10 +185,10 @@ function best8(arr){
 /* ---------- LOAD ---------- */
 async function load(){
 
-  const r=await fetch(CSV);
+  const r=await fetch(CSV_URL);
   const t=await r.text();
 
-  const rows=parse(t);
+  const rows=parseCSV(t);
 
   data=rows.map(x=>({
     player:x.Player,
@@ -219,7 +242,7 @@ function render(){
   });
 }
 
-/* ---------- PLAYER VIEW ---------- */
+/* ---------- PLAYER ---------- */
 function open(p){
 
   current=p;
@@ -251,7 +274,6 @@ function open(p){
         <td>${x.diff.toFixed(1)}</td>
         <td>${used.has(x.diff)?"YES":"NO"}</td>
         <td>${h}</td>
-        <td>Recalc WHS rolling best 8</td>
       </tr>
     `;
   });
@@ -261,7 +283,7 @@ function open(p){
   document.getElementById("playerName").innerText=p;
 }
 
-/* ---------- SIM ---------- */
+/* ---------- WHAT IF ---------- */
 function simulate(){
 
   let v=n(document.getElementById("simInput").value);
@@ -271,7 +293,38 @@ function simulate(){
   let sim=[...r,{diff:v}];
 
   document.getElementById("simOut").innerHTML=
-    "Simulated Index: "+index(sim.map(x=>x.diff));
+    "Projected Index: "+index(sim.map(x=>x.diff));
+}
+
+/* ---------- GOAL ENGINE ---------- */
+function projectGoal(){
+
+  const target=+document.getElementById("targetHcp").value;
+  const nR=+document.getElementById("futureRounds").value;
+  const score=+document.getElementById("futureScore").value;
+
+  if(!score||!nR) return;
+
+  let r=rounds(data,current);
+
+  let sim=[...r];
+
+  for(let i=0;i<nR;i++){
+    sim.push({
+      diff: ((score-(r[0]?.rating||72))*113/(r[0]?.slope||113))
+    });
+  }
+
+  let proj=index(sim.map(x=>x.diff));
+  let curr=index(r.map(x=>x.diff));
+
+  document.getElementById("goalOut").innerHTML=`
+    <br>
+    Current: <b>${curr}</b><br>
+    Projected: <b>${proj}</b><br>
+    Target: <b>${target}</b><br>
+    Gap: <b>${(proj-target).toFixed(2)}</b>
+  `;
 }
 
 /* ---------- CHART ---------- */
