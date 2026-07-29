@@ -43,12 +43,18 @@ loadGoogleSheet();
 
 async function loadGoogleSheet(){
 
-
 try{
-
 
 const response =
 await fetch(SHEET_URL);
+
+if(!response.ok){
+
+throw new Error(
+"Google Sheet could not be accessed"
+);
+
+}
 
 
 
@@ -159,43 +165,30 @@ return normalizeRound(row);
 
 
 
-
-
-
-
 function normalizeRound(row){
 
-
-return{
-
+return {
 
 player:
-row.Player,
-
+row.Player || "",
 
 score:
-Number(row.Score),
-
+Number(row.Score) || 0,
 
 date:
-row.Date,
-
+row.Date || "",
 
 course:
-row.Course,
-
+row.Course || "",
 
 rating:
-Number(row.Rating),
+Number(row.Rating) || 0,
 
-
-Slope:
-Number(row.Slope),
-
+slope:
+Number(row.Slope) || 0,
 
 tee:
-row.Tee,
-
+row.Tee || "",
 
 differential:
 
@@ -205,15 +198,9 @@ Number(row.Rating),
 Number(row.Slope)
 )
 
-
 };
 
-
 }
-
-
-
-
 
 
 
