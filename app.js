@@ -1,7 +1,7 @@
 /* ==========================================================
    Golf Tracker v2
-   Deliverable 4
-   Golf Canada Handicap Engine
+   Deliverable 5 - Handicap Analysis Engine
+   Part 1
    ========================================================== */
 
 
@@ -15,6 +15,7 @@ let rounds = [];
 
 
 
+
 // ==========================================================
 // INITIALIZE
 // ==========================================================
@@ -22,11 +23,13 @@ let rounds = [];
 
 document.addEventListener(
 "DOMContentLoaded",
-function(){
+()=>{
 
 loadGoogleSheet();
 
 });
+
+
 
 
 
@@ -68,6 +71,9 @@ updateDashboard();
 calculateAllHandicaps();
 
 
+renderHandicapAnalysis();
+
+
 
 }
 
@@ -78,14 +84,13 @@ console.error(error);
 
 
 alert(
-"Unable to load spreadsheet."
+"Spreadsheet loading error"
 );
 
 
 }
 
 
-
 }
 
 
@@ -95,35 +100,35 @@ alert(
 
 
 // ==========================================================
-// CSV PARSER
+// CSV PROCESSING
 // ==========================================================
 
 
 function parseCSV(csv){
 
 
-const rows =
+const lines =
 csv.trim().split("\n");
 
 
+
 const headers =
-rows[0]
+lines[0]
 .split(",")
-.map(x=>x.trim());
+.map(h=>h.trim());
 
 
 
-return rows
-.slice(1)
-.map(row=>{
+return lines.slice(1)
+.map(line=>{
 
 
 const values =
-row.split(",");
+line.split(",");
 
 
 
-let obj={};
+let row={};
 
 
 
@@ -131,7 +136,7 @@ headers.forEach(
 (header,index)=>{
 
 
-obj[header]=
+row[header] =
 values[index]
 ?
 values[index].trim()
@@ -143,7 +148,7 @@ values[index].trim()
 
 
 
-return normalizeRound(obj);
+return normalizeRound(row);
 
 
 
@@ -156,11 +161,6 @@ return normalizeRound(obj);
 
 
 
-
-
-// ==========================================================
-// NORMALIZE DATA
-// ==========================================================
 
 
 function normalizeRound(row){
@@ -189,7 +189,7 @@ rating:
 Number(row.Rating),
 
 
-slope:
+Slope:
 Number(row.Slope),
 
 
@@ -198,6 +198,7 @@ row.Tee,
 
 
 differential:
+
 calculateDifferential(
 Number(row.Score),
 Number(row.Rating),
@@ -229,22 +230,25 @@ slope
 ){
 
 
-if(!score || !rating || !slope){
+if(!score || !rating || !slope)
 
 return 0;
 
-}
 
 
 return Number(
+
 (
 (score-rating)
 *
 113
 /
 slope
+
 )
+
 .toFixed(1)
+
 );
 
 
@@ -257,79 +261,9 @@ slope
 
 
 
-// ==========================================================
-// TABLE
-// ==========================================================
-
-
-function renderTable(){
-
-
-const tbody =
-document.querySelector(
-"#roundTable tbody"
-);
-
-
-
-if(!tbody)return;
-
-
-
-tbody.innerHTML="";
-
-
-
-rounds
-.sort(
-(a,b)=>
-new Date(b.date)
--
-new Date(a.date)
-)
-.forEach(r=>{
-
-
-tbody.innerHTML += `
-
-
-<tr>
-
-<td>${r.player}</td>
-
-<td>${r.date}</td>
-
-<td>${r.course}</td>
-
-<td>${r.score}</td>
-
-<td>${r.rating}</td>
-
-<td>${r.slope}</td>
-
-<td>${r.tee}</td>
-
-</tr>
-
-
-`;
-
-
-});
-
-
-}
-
-
-
-
-
-
-
-
 
 // ==========================================================
-// HANDICAP CALCULATION
+// HANDICAP ENGINE
 // ==========================================================
 
 
@@ -337,36 +271,18 @@ function calculateHandicap(player){
 
 
 const playerRounds =
+
 rounds
 .filter(
 r=>r.player===player
 )
+
 .sort(
 (a,b)=>
 new Date(b.date)
 -
 new Date(a.date)
 );
-
-
-
-if(playerRounds.length < 3){
-
-
-return{
-
-index:null,
-
-counting:[],
-
-message:
-"Need more rounds"
-
-};
-
-
-}
-
 
 
 
@@ -375,56 +291,77 @@ playerRounds.slice(0,20);
 
 
 
-const differentials =
-last20
-.map(r=>r.differential)
+const sorted =
+
+[...last20]
+
 .sort(
-(a,b)=>a-b
+(a,b)=>
+a.differential-b.differential
 );
 
 
 
-const counting =
-differentials
-.slice(0,8);
-
-
-
-const average =
-
-counting.reduce(
-(a,b)=>a+b,
-0
-)
-/
-counting.length;
+const countingRounds =
+sorted.slice(0,8);
 
 
 
 const handicap =
 
+
+countingRounds.length
+
+?
+
 Number(
+
 (
-average
-*
-0.96
+countingRounds
+
+.reduce(
+(sum,r)=>
+sum+r.differential,
+0
 )
+
+/
+
+countingRounds.length
+
+*
+
+0.96
+
+)
+
 .toFixed(1)
-);
+
+)
+
+:
+
+null;
 
 
 
 return{
 
 
-index:handicap,
+handicap,
 
-counting:counting,
+allRounds:last20,
 
-totalRounds:last20.length
+countingRounds,
+
+
+droppedRounds:
+
+sorted.slice(8)
 
 
 };
+
 
 
 }
@@ -436,22 +373,25 @@ totalRounds:last20.length
 
 
 
+
 // ==========================================================
-// ALL HANDICAPS
+// HANDICAP ANALYSIS DISPLAY
 // ==========================================================
 
 
-function calculateAllHandicaps(){
+function renderHandicapAnalysis(){
 
 
-const results =
+const container =
 document.getElementById(
 "handicapResults"
 );
 
 
 
-if(!results)return;
+if(!container)
+
+return;
 
 
 
@@ -463,7 +403,7 @@ let html="";
 .forEach(player=>{
 
 
-const h =
+const result =
 calculateHandicap(player);
 
 
@@ -471,56 +411,63 @@ calculateHandicap(player);
 html += `
 
 
-<div class="summary-item">
+<div class="panel">
 
 
 <h3>${player}</h3>
 
 
+<h4>
+Current Handicap:
+${result.handicap ?? "--"}
+</h4>
 
-<div class="stat">
+
+
+<h4>
+Counting Rounds
+</h4>
+
+
+
+<table>
+
+
+<tr>
+
+<th>Date</th>
+<th>Course</th>
+<th>Score</th>
+<th>Differential</th>
+
+</tr>
 
 
 ${
-h.index
-?
-h.index
-:
-"--"
+result.countingRounds.map(r=>`
+
+<tr>
+
+<td>${r.date}</td>
+
+<td>${r.course}</td>
+
+<td>${r.score}</td>
+
+<td>${r.differential}</td>
+
+</tr>
+
+
+`).join("")
+
 }
 
 
-</div>
-
-
-Handicap Index
-
-
-
-<br><br>
-
-
-Rounds Used:
-${h.totalRounds || 0}
-
-
-
-<br>
-
-
-Counting Differentials:
-
-${
-h.counting
-?
-h.counting.join(", ")
-:
-"--"
-}
+</table>
 
 
 </div>
-
 
 
 `;
@@ -531,15 +478,7 @@ h.counting.join(", ")
 
 
 
-results.innerHTML =
-`
-<div class="summary-box">
-
-${html}
-
-</div>
-
-`;
+container.innerHTML=html;
 
 
 
@@ -547,13 +486,16 @@ ${html}
 
 
 
-
-
+/* ==========================================================
+   Golf Tracker v2
+   Deliverable 5 - Handicap Analysis Engine
+   Part 2
+   ========================================================== */
 
 
 
 // ==========================================================
-// DASHBOARD
+// DASHBOARD SUMMARY
 // ==========================================================
 
 
@@ -567,7 +509,18 @@ document.getElementById(
 
 
 
-if(!stats)return;
+if(!stats)
+
+return;
+
+
+
+const mike =
+calculateHandicap("Mike");
+
+
+const johnny =
+calculateHandicap("Johnny");
 
 
 
@@ -585,7 +538,7 @@ ${rounds.length}
 
 </div>
 
-Rounds Loaded
+Total Rounds Loaded
 
 </div>
 
@@ -595,7 +548,7 @@ Rounds Loaded
 
 <div class="stat">
 
-${calculateHandicap("Mike").index || "--"}
+${mike.handicap ?? "--"}
 
 </div>
 
@@ -609,7 +562,7 @@ Mike Handicap
 
 <div class="stat">
 
-${calculateHandicap("Johnny").index || "--"}
+${johnny.handicap ?? "--"}
 
 </div>
 
@@ -633,6 +586,317 @@ Johnny Handicap
 
 
 
+
+
+// ==========================================================
+// HANDICAP EXPLANATION ENGINE
+// ==========================================================
+
+
+function explainHandicap(player){
+
+
+const result =
+calculateHandicap(player);
+
+
+
+if(!result.handicap){
+
+
+return `
+
+${player} does not yet have enough rounds
+to calculate a handicap.
+
+`;
+
+}
+
+
+
+let explanation = "";
+
+
+
+explanation += `
+
+<h3>${player} Handicap Analysis</h3>
+
+`;
+
+
+
+explanation += `
+
+<p>
+
+Current Handicap Index:
+
+<strong>
+
+${result.handicap}
+
+</strong>
+
+</p>
+
+`;
+
+
+
+explanation += `
+
+<p>
+
+The handicap is calculated using the
+lowest 8 Score Differentials from the
+most recent 20 rounds.
+
+</p>
+
+`;
+
+
+
+explanation += `
+
+<p>
+
+${result.countingRounds.length}
+rounds are currently counting.
+
+</p>
+
+`;
+
+
+
+if(result.droppedRounds.length > 0){
+
+
+explanation += `
+
+<p>
+
+${result.droppedRounds.length}
+rounds are currently not counting because
+their differentials are higher than the
+selected counting rounds.
+
+</p>
+
+`;
+
+}
+
+
+
+return explanation;
+
+
+}
+
+
+
+
+
+
+
+
+// ==========================================================
+// DISPLAY EXPLANATION
+// ==========================================================
+
+
+function showHandicapExplanation(player){
+
+
+const box =
+document.getElementById(
+"handicapExplanation"
+);
+
+
+
+if(!box)
+
+return;
+
+
+
+box.innerHTML =
+explainHandicap(player);
+
+
+}
+
+
+
+
+
+
+
+
+
+// ==========================================================
+// HANDICAP CHANGE FOUNDATION
+// ==========================================================
+
+
+function compareHandicapChange(
+player,
+previousHandicap
+){
+
+
+const current =
+calculateHandicap(player);
+
+
+
+if(!current.handicap)
+
+return "No handicap available.";
+
+
+
+const change =
+(
+current.handicap -
+previousHandicap
+)
+.toFixed(1);
+
+
+
+if(change < 0){
+
+
+return `
+
+${player}'s handicap improved by
+${Math.abs(change)} strokes.
+
+The new lower differential replaced a
+higher counting differential.
+
+`;
+
+}
+
+
+
+if(change > 0){
+
+
+return `
+
+${player}'s handicap increased by
+${change} strokes.
+
+A stronger previous differential has
+dropped out of the calculation.
+
+`;
+
+}
+
+
+
+return `
+
+${player}'s handicap did not change.
+
+`;
+
+}
+
+
+
+
+
+
+
+
+// ==========================================================
+// PLAYER ROUND BREAKDOWN
+// ==========================================================
+
+
+function getRoundBreakdown(player){
+
+
+const result =
+calculateHandicap(player);
+
+
+
+return {
+
+
+counting:
+
+result.countingRounds.map(r=>({
+
+date:r.date,
+
+course:r.course,
+
+score:r.score,
+
+differential:r.differential
+
+})),
+
+
+
+notCounting:
+
+result.droppedRounds.map(r=>({
+
+date:r.date,
+
+course:r.course,
+
+score:r.score,
+
+differential:r.differential
+
+}))
+
+
+};
+
+
+
+}
+
+
+
+
+
+
+
+
+// ==========================================================
+// REFRESH BUTTON SUPPORT
+// ==========================================================
+
+
+function refreshData(){
+
+loadGoogleSheet();
+
+}
+
+
+
+
+
+
+
+
 // ==========================================================
 // NAVIGATION
 // ==========================================================
@@ -645,7 +909,9 @@ document
 .querySelectorAll(".page")
 .forEach(page=>{
 
+
 page.classList.add("hidden");
+
 
 });
 
@@ -658,10 +924,13 @@ document.getElementById(id);
 
 if(selected){
 
-selected.classList.remove("hidden");
+
+selected.classList.remove(
+"hidden"
+);
+
 
 }
-
 
 
 }
