@@ -750,8 +750,8 @@ current.countingRounds
 
 const currentAverage =
 
-differentielsAverage(
-differentiels
+differentialsAverage(
+differentials
 );
 
 
