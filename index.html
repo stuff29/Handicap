@@ -1,353 +1,349 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>WHS Golf Tracker + Goal Solver</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Golf Tracker v2</title>
 
-<style>
-body{
-  font-family:Arial;
-  margin:0;
-  padding:20px;
-  background:#f5f7f6;
-}
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
 
-h1{text-align:center;}
+    body{
+      font-family:Arial,Helvetica,sans-serif;
+      background:#eceff1;
+      color:#222;
+    }
 
-.controls{
-  text-align:center;
-  margin-bottom:15px;
-}
+    header{
+      background:#0b6b3a;
+      color:white;
+      padding:20px;
+      text-align:center;
+      box-shadow:0 2px 6px rgba(0,0,0,.25);
+    }
 
-button{
-  padding:8px 12px;
-  margin:5px;
-  cursor:pointer;
-}
+    nav{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:10px;
+      padding:15px;
+      background:#fff;
+      border-bottom:1px solid #ccc;
+    }
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-  gap:15px;
-}
+    nav button{
+      padding:10px 18px;
+      border:none;
+      border-radius:6px;
+      background:#0b6b3a;
+      color:#fff;
+      cursor:pointer;
+      transition:.2s;
+    }
 
-.card{
-  background:#fff;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-  cursor:pointer;
-}
+    nav button:hover{
+      background:#09562f;
+    }
 
-.name{font-size:18px;font-weight:bold;}
-.hcp{font-size:28px;color:#1b6b3a;margin:10px 0;}
-.small{font-size:13px;color:#666;}
+    main{
+      width:min(1200px,95%);
+      margin:25px auto;
+    }
 
-.view{display:none;}
+    .panel{
+      background:white;
+      border-radius:10px;
+      padding:20px;
+      margin-bottom:20px;
+      box-shadow:0 2px 8px rgba(0,0,0,.1);
+    }
 
-canvas{
-  background:#fff;
-  border-radius:10px;
-  padding:10px;
-  max-width:100%;
-}
+    h2{
+      margin-bottom:15px;
+    }
 
-.simBox{
-  margin-top:15px;
-  background:#fff;
-  padding:10px;
-  border-radius:10px;
-}
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:15px;
+    }
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:15px;
-  font-size:13px;
-}
+    input,select{
+      width:100%;
+      padding:10px;
+    }
 
-th,td{
-  border-bottom:1px solid #ddd;
-  padding:6px;
-  text-align:center;
-}
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:20px;
+    }
 
-th{background:#e8f3ec;}
-</style>
+    th,td{
+      border:1px solid #ccc;
+      padding:10px;
+      text-align:center;
+    }
+
+    th{
+      background:#0b6b3a;
+      color:white;
+    }
+
+    .hidden{
+      display:none;
+    }
+
+    footer{
+      text-align:center;
+      padding:30px;
+      color:#777;
+    }
+  </style>
 </head>
 
 <body>
 
-<h1>Golf Handicap Tracker (Goal Solver Engine)</h1>
+<header>
+    <h1>Golf Tracker v2</h1>
+    <p>Foundation Build</p>
+</header>
 
-<div class="controls">
-  <button onclick="load()">Refresh</button>
-  <button onclick="back()">Back</button>
+<nav>
+    <button onclick="showPage('dashboard')">Dashboard</button>
+    <button onclick="showPage('scores')">Scores</button>
+    <button onclick="showPage('handicap')">Handicap</button>
+    <button onclick="showPage('stats')">Statistics</button>
+    <button onclick="showPage('settings')">Settings</button>
+</nav>
+
+<main>
+
+<section id="dashboard" class="panel page">
+
+<h2>Dashboard</h2>
+
+<p>
+Welcome to Golf Tracker v2.
+</p>
+
+<ul>
+<li>Store rounds locally</li>
+<li>Track players</li>
+<li>Future handicap engine</li>
+<li>Statistics</li>
+<li>What-if simulator (coming)</li>
+<li>Time Machine (coming)</li>
+</ul>
+
+</section>
+
+<section id="scores" class="panel page hidden">
+
+<h2>Add Round</h2>
+
+<div class="grid">
+
+<div>
+<label>Player</label>
+<select id="player">
+<option>Mike</option>
+<option>Johnny</option>
+</select>
 </div>
 
-<div id="dashboard">
-  <div class="grid" id="players"></div>
+<div>
+<label>Date</label>
+<input id="date" type="date">
 </div>
 
-<div id="playerView" class="view">
-
-  <h2 id="playerName"></h2>
-
-  <canvas id="chart" height="120"></canvas>
-
-  <!-- GOAL SOLVER -->
-  <div class="simBox">
-    <b>Goal Solver (NEW)</b><br><br>
-
-    Target Handicap:
-    <select id="targetHcp">
-      <option value="10">10 (Mike)</option>
-      <option value="15">15 (Johnny)</option>
-    </select>
-
-    <br><br>
-
-    Next rounds:
-    <input id="futureRounds" type="number" value="5" min="1" max="20">
-
-    <br><br>
-
-    <button onclick="solveGoal()">Calculate Required Average Score</button>
-
-    <div id="goalOut"></div>
-  </div>
-
-  <h3>Round Breakdown</h3>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Diff</th>
-        <th>Counting</th>
-        <th>Index After</th>
-      </tr>
-    </thead>
-    <tbody id="rows"></tbody>
-  </table>
+<div>
+<label>Course</label>
+<input id="course">
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<div>
+<label>Score</label>
+<input id="score" type="number">
+</div>
+
+<div>
+<label>Course Rating</label>
+<input id="rating" type="number" step=".1">
+</div>
+
+<div>
+<label>Slope</label>
+<input id="slope" type="number">
+</div>
+
+</div>
+
+<br>
+
+<button onclick="saveRound()">Save Round</button>
+
+<table id="roundTable">
+
+<thead>
+
+<tr>
+<th>Player</th>
+<th>Date</th>
+<th>Course</th>
+<th>Score</th>
+<th>Rating</th>
+<th>Slope</th>
+</tr>
+
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+</section>
+
+<section id="handicap" class="panel page hidden">
+
+<h2>Handicap</h2>
+
+<p id="handicapText">
+
+No handicap calculation installed yet.
+
+</p>
+
+</section>
+
+<section id="stats" class="panel page hidden">
+
+<h2>Statistics</h2>
+
+<div id="statsText">
+
+No statistics yet.
+
+</div>
+
+</section>
+
+<section id="settings" class="panel page hidden">
+
+<h2>Settings</h2>
+
+<p>
+
+All information is currently stored in your browser using Local Storage.
+
+</p>
+
+<button onclick="resetData()">
+
+Delete All Saved Data
+
+</button>
+
+</section>
+
+</main>
+
+<footer>
+
+Golf Tracker v2
+
+</footer>
 
 <script>
 
-const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ2Pi7i-K8rOl04TxtskiyYqZ2oecFiuMsNDcTNZhDe7oTktH8y4jGRzU_xJm0N1QwTgejG1aVWvs7/pub?gid=0&single=true&output=csv";
+let rounds=JSON.parse(localStorage.getItem("golfRounds")||"[]");
 
-let data=[];
-let current=null;
-let chart=null;
+function showPage(id){
 
-/* ---------- PARSE ---------- */
-function parseCSV(t){
-  const l=t.trim().split("\n");
-  const h=l[0].split(",");
-  return l.slice(1).map(r=>{
-    const v=r.split(",");
-    let o={};
-    h.forEach((x,i)=>o[x.trim()] = (v[i]||"").trim());
-    return o;
-  });
+document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+
+document.getElementById(id).classList.remove("hidden");
+
 }
 
-const n=x=>isNaN(+x)?0:+x;
+function saveRound(){
 
-/* ---------- WHS INDEX ---------- */
-function index(arr){
-  if(!arr.length) return 0;
+const round={
 
-  const s=[...arr].sort((a,b)=>a-b);
-  const use=Math.min(8,s.length);
-  const best=s.slice(0,use);
+player:player.value,
 
-  return +(best.reduce((a,b)=>a+b,0)/best.length*0.96).toFixed(1);
+date:date.value,
+
+course:course.value,
+
+score:Number(score.value),
+
+rating:Number(rating.value),
+
+slope:Number(slope.value)
+
+};
+
+rounds.push(round);
+
+localStorage.setItem("golfRounds",JSON.stringify(rounds));
+
+renderTable();
+
 }
 
-function best8(arr){
-  return [...arr].sort((a,b)=>a-b).slice(0,8);
+function renderTable(){
+
+const tbody=document.querySelector("#roundTable tbody");
+
+tbody.innerHTML="";
+
+rounds.forEach(r=>{
+
+tbody.innerHTML+=`
+
+<tr>
+
+<td>${r.player}</td>
+
+<td>${r.date}</td>
+
+<td>${r.course}</td>
+
+<td>${r.score}</td>
+
+<td>${r.rating}</td>
+
+<td>${r.slope}</td>
+
+</tr>
+
+`;
+
+});
+
 }
 
-/* ---------- LOAD ---------- */
-async function load(){
+function resetData(){
 
-  const r=await fetch(CSV_URL);
-  const t=await r.text();
+if(confirm("Delete all saved rounds?")){
 
-  const rows=parseCSV(t);
+rounds=[];
 
-  data=rows.map(x=>({
-    player:x.Player,
-    date:x.Date,
-    course:x.Course,
-    score:n(x.Score),
-    rating:n(x.Rating),
-    slope:n(x.Slope)
-  }));
+localStorage.removeItem("golfRounds");
 
-  data.forEach(r=>{
-    r.diff=((r.score-r.rating)*113/r.slope);
-  });
+renderTable();
 
-  render();
 }
 
-/* ---------- GROUP ---------- */
-function players(d){
-  return [...new Set(d.map(x=>x.player))];
 }
 
-function rounds(d,p){
-  return d.filter(x=>x.player===p)
-    .sort((a,b)=>new Date(a.date)-new Date(b.date));
-}
-
-/* ---------- DASHBOARD ---------- */
-function render(){
-
-  let div=document.getElementById("players");
-  div.innerHTML="";
-
-  players(data).forEach(p=>{
-
-    let r=rounds(data,p);
-
-    let h=index(r.map(x=>x.diff));
-
-    let c=document.createElement("div");
-    c.className="card";
-    c.onclick=()=>open(p);
-
-    c.innerHTML=`
-      <div class="name">${p}</div>
-      <div class="hcp">${h}</div>
-      <div class="small">${r.length} rounds</div>
-    `;
-
-    div.appendChild(c);
-  });
-}
-
-/* ---------- PLAYER ---------- */
-function open(p){
-
-  current=p;
-
-  document.getElementById("dashboard").style.display="none";
-  document.getElementById("playerView").style.display="block";
-
-  let r=rounds(data,p);
-
-  let out=document.getElementById("rows");
-  out.innerHTML="";
-
-  let labels=[],vals=[];
-
-  r.forEach((x,i)=>{
-
-    let slice=r.slice(0,i+1);
-
-    let h=index(slice.map(z=>z.diff));
-
-    let used=new Set(best8(slice.map(z=>z.diff)));
-
-    labels.push(x.date);
-    vals.push(h);
-
-    out.innerHTML+=`
-      <tr>
-        <td>${x.date}</td>
-        <td>${x.diff.toFixed(1)}</td>
-        <td>${used.has(x.diff)?"YES":"NO"}</td>
-        <td>${h}</td>
-      </tr>
-    `;
-  });
-
-  draw(labels,vals);
-
-  document.getElementById("playerName").innerText=p;
-}
-
-/* ---------- GOAL SOLVER ---------- */
-function solveGoal(){
-
-  const target=+document.getElementById("targetHcp").value;
-  const N=+document.getElementById("futureRounds").value;
-
-  let r=rounds(data,current);
-  let currentIndex=index(r.map(x=>x.diff));
-
-  /*
-    We approximate WHS sensitivity:
-    each stroke ≈ 1.0 index shift over small samples
-  */
-
-  let gap=currentIndex-target;
-
-  let requiredIndexChange = -gap;
-
-  let requiredTotalDiffChange = requiredIndexChange / 0.96;
-
-  let currentAvg=r.length
-    ? r.reduce((a,b)=>a+b.diff,0)/r.length
-    : 0;
-
-  let requiredFutureAvg =
-    currentAvg + (requiredTotalDiffChange / N);
-
-  /*
-    convert diff back to score estimate
-    diff = (score - rating) * 113 / slope
-  */
-
-  let rating=r[0]?.rating || 72;
-  let slope=r[0]?.slope || 113;
-
-  let requiredScore =
-    (requiredFutureAvg * slope / 113) + rating;
-
-  document.getElementById("goalOut").innerHTML=`
-    <br>
-    Current Index: <b>${currentIndex}</b><br>
-    Target: <b>${target}</b><br><br>
-
-    Required Average Differential: <b>${requiredFutureAvg.toFixed(2)}</b><br>
-    Required Average Score: <b>${requiredScore.toFixed(1)}</b><br><br>
-
-    Over next ${N} rounds.
-  `;
-}
-
-/* ---------- CHART ---------- */
-function draw(l,d){
-
-  if(chart) chart.destroy();
-
-  chart=new Chart(document.getElementById("chart"),{
-    type:"line",
-    data:{
-      labels:l,
-      datasets:[{
-        label:"Handicap",
-        data:d,
-        borderColor:"#1b6b3a",
-        fill:false
-      }]
-    }
-  });
-}
-
-/* ---------- BACK ---------- */
-function back(){
-  document.getElementById("dashboard").style.display="block";
-  document.getElementById("playerView").style.display="none";
-}
-
-load();
+renderTable();
 
 </script>
 
