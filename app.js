@@ -975,3 +975,78 @@ function renderTable(){
     });
 
 }
+
+// ==========================================================
+// CALCULATE ALL PLAYER HANDICAPS
+// ==========================================================
+
+function calculateAllHandicaps(){
+
+    const results =
+        document.getElementById("handicapResults");
+
+
+    if(!results){
+        return;
+    }
+
+
+    let html = "";
+
+
+    ["Mike","Johnny"].forEach(player=>{
+
+
+        const result =
+            calculateHandicap(player);
+
+
+
+        html += `
+
+        <div class="summary-item">
+
+            <h3>${player}</h3>
+
+            <div class="stat">
+                ${
+                    result.handicap !== null
+                    ?
+                    result.handicap
+                    :
+                    "--"
+                }
+            </div>
+
+            <p>
+            Counting rounds:
+            ${
+                result.countingRounds
+                ?
+                result.countingRounds.length
+                :
+                0
+            }
+            </p>
+
+        </div>
+
+        `;
+
+
+    });
+
+
+
+    results.innerHTML = `
+
+    <div class="summary-box">
+
+    ${html}
+
+    </div>
+
+    `;
+
+
+}
