@@ -1,17 +1,12 @@
 /* ==========================================
    Golf Tracker v3
    Application Controller
+   Robust Modular Loader
    ========================================== */
-
 
 (function () {
 
-
 "use strict";
-
-
-
-/* ---------- Application State ---------- */
 
 
 window.GolfTracker = {
@@ -30,7 +25,23 @@ window.GolfTracker = {
 
 
 
-/* ---------- DOM Helpers ---------- */
+function moduleExists(name) {
+
+    if (typeof window[name] === "undefined") {
+
+        console.warn(
+            "Module not loaded:",
+            name
+        );
+
+        return false;
+
+    }
+
+    return true;
+
+}
+
 
 
 function showLoading() {
@@ -64,29 +75,27 @@ function hideLoading() {
 
 
 
-/* ---------- Navigation ---------- */
+/* ================================
+   Navigation
+================================ */
 
 
 function initializeNavigation() {
 
 
-    const buttons =
-        document.querySelectorAll(".nav-btn");
-
-
-    buttons.forEach(button => {
+    document
+    .querySelectorAll(".nav-btn")
+    .forEach(button => {
 
 
         button.addEventListener(
             "click",
-            function(){
+            () => {
 
 
-                const page =
-                    this.dataset.page;
-
-
-                switchPage(page);
+                switchPage(
+                    button.dataset.page
+                );
 
 
             }
@@ -100,28 +109,31 @@ function initializeNavigation() {
 
 
 
-
-function switchPage(page){
+function switchPage(page) {
 
 
     document
     .querySelectorAll(".page")
     .forEach(section => {
 
-        section.classList.remove("active");
+        section.classList.remove(
+            "active"
+        );
 
     });
 
 
 
-    const target =
+    const selected =
         document.getElementById(page);
 
 
 
-    if(target){
+    if(selected) {
 
-        target.classList.add("active");
+        selected.classList.add(
+            "active"
+        );
 
     }
 
@@ -129,15 +141,19 @@ function switchPage(page){
 
     document
     .querySelectorAll(".nav-btn")
-    .forEach(button=>{
+    .forEach(button => {
 
 
-        button.classList.remove("active");
+        button.classList.remove(
+            "active"
+        );
 
 
         if(button.dataset.page === page){
 
-            button.classList.add("active");
+            button.classList.add(
+                "active"
+            );
 
         }
 
@@ -149,39 +165,56 @@ function switchPage(page){
     GolfTracker.currentPage = page;
 
 
-
 }
 
 
 
 
-/* ---------- Data Loading ---------- */
+/* ================================
+   CSV Loading
+================================ */
 
 
-async function loadApplicationData(){
+async function loadApplicationData() {
+
+
+    showLoading();
+
 
 
     try {
 
 
-        showLoading();
+        if(!moduleExists("CSV")) {
+
+            console.warn(
+                "CSV module not available yet."
+            );
+
+            return;
+
+        }
 
 
 
-        const csvData =
+        const csv =
             await CSV.loadCSV();
 
 
 
         GolfTracker.rounds =
-            CSV.parseRounds(csvData);
+            CSV.parseRounds(csv);
 
 
 
-        GolfTracker.players =
-            Handicap.initializePlayers(
-                GolfTracker.rounds
-            );
+        if(moduleExists("Handicap")) {
+
+            GolfTracker.players =
+                Handicap.initializePlayers(
+                    GolfTracker.rounds
+                );
+
+        }
 
 
 
@@ -189,24 +222,15 @@ async function loadApplicationData(){
 
 
 
-        GolfTracker.initialized = true;
-
-
-
     }
 
 
-    catch(error){
+    catch(error) {
 
 
         console.error(
-            "Golf Tracker startup error:",
+            "Golf Tracker data error:",
             error
-        );
-
-
-        alert(
-            "Unable to load golf data. Check your CSV settings."
         );
 
 
@@ -222,64 +246,96 @@ async function loadApplicationData(){
     }
 
 
-
 }
 
 
 
 
-/* ---------- Refresh ---------- */
+/* ================================
+   Refresh Application
+================================ */
 
 
-function refreshApplication(){
+function refreshApplication() {
 
 
+    if(
+        moduleExists("Dashboard") &&
+        Dashboard.render
+    ){
 
-    if(!GolfTracker.initialized &&
-       GolfTracker.rounds.length === 0){
-
-        return;
+        Dashboard.render(
+            GolfTracker.players
+        );
 
     }
 
 
 
-    Dashboard.render(
-        GolfTracker.players
-    );
+    if(
+        moduleExists("History") &&
+        History.render
+    ){
+
+        History.render(
+            GolfTracker.rounds
+        );
+
+    }
 
 
 
-    History.render(
-        GolfTracker.rounds
-    );
+    if(
+        moduleExists("Analysis") &&
+        Analysis.render
+    ){
+
+        Analysis.render(
+            GolfTracker.players,
+            GolfTracker.rounds
+        );
+
+    }
 
 
 
-    Analysis.render(
-        GolfTracker.players,
-        GolfTracker.rounds
-    );
+    if(
+        moduleExists("Solver") &&
+        Solver.initialize
+    ){
+
+        Solver.initialize(
+            GolfTracker.players,
+            GolfTracker.rounds
+        );
+
+    }
 
 
 
-    Solver.initialize(
-        GolfTracker.players,
-        GolfTracker.rounds
-    );
+    if(
+        moduleExists("TimeMachine") &&
+        TimeMachine.initialize
+    ){
+
+        TimeMachine.initialize(
+            GolfTracker.rounds
+        );
+
+    }
 
 
 
-    TimeMachine.initialize(
-        GolfTracker.rounds
-    );
+    if(
+        moduleExists("Charts") &&
+        Charts.render
+    ){
 
+        Charts.render(
+            GolfTracker.players
+        );
 
-
-    Charts.render(
-        GolfTracker.players
-    );
-
+    }
 
 
 }
@@ -287,11 +343,12 @@ function refreshApplication(){
 
 
 
-/* ---------- Button Events ---------- */
+/* ================================
+   Buttons
+================================ */
 
 
-function initializeButtons(){
-
+function initializeButtons() {
 
 
     const refresh =
@@ -300,8 +357,7 @@ function initializeButtons(){
         );
 
 
-
-    if(refresh){
+    if(refresh) {
 
 
         refresh.addEventListener(
@@ -313,15 +369,17 @@ function initializeButtons(){
     }
 
 
-
 }
 
 
 
-/* ---------- Startup ---------- */
+
+/* ================================
+   Start
+================================ */
 
 
-async function start(){
+async function start() {
 
 
     initializeNavigation();
@@ -333,6 +391,14 @@ async function start(){
     await loadApplicationData();
 
 
+    GolfTracker.initialized = true;
+
+
+    console.log(
+        "Golf Tracker v3 loaded"
+    );
+
+
 }
 
 
@@ -341,7 +407,6 @@ document.addEventListener(
     "DOMContentLoaded",
     start
 );
-
 
 
 })();
