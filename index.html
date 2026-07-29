@@ -1,260 +1,239 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Golf Tracker v2</title>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Golf Tracker v2</title>
 
 <link rel="stylesheet" href="style.css">
-<script src="app.js"></script>
 
-  <style>
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-    }
-
-    body{
-      font-family:Arial,Helvetica,sans-serif;
-      background:#eceff1;
-      color:#222;
-    }
-
-    header{
-      background:#0b6b3a;
-      color:white;
-      padding:20px;
-      text-align:center;
-      box-shadow:0 2px 6px rgba(0,0,0,.25);
-    }
-
-    nav{
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:center;
-      gap:10px;
-      padding:15px;
-      background:#fff;
-      border-bottom:1px solid #ccc;
-    }
-
-    nav button{
-      padding:10px 18px;
-      border:none;
-      border-radius:6px;
-      background:#0b6b3a;
-      color:#fff;
-      cursor:pointer;
-      transition:.2s;
-    }
-
-    nav button:hover{
-      background:#09562f;
-    }
-
-    main{
-      width:min(1200px,95%);
-      margin:25px auto;
-    }
-
-    .panel{
-      background:white;
-      border-radius:10px;
-      padding:20px;
-      margin-bottom:20px;
-      box-shadow:0 2px 8px rgba(0,0,0,.1);
-    }
-
-    h2{
-      margin-bottom:15px;
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-      gap:15px;
-    }
-
-    input,select{
-      width:100%;
-      padding:10px;
-    }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      margin-top:20px;
-    }
-
-    th,td{
-      border:1px solid #ccc;
-      padding:10px;
-      text-align:center;
-    }
-
-    th{
-      background:#0b6b3a;
-      color:white;
-    }
-
-    .hidden{
-      display:none;
-    }
-
-    footer{
-      text-align:center;
-      padding:30px;
-      color:#777;
-    }
-  </style>
 </head>
+
 
 <body>
 
+
 <header>
-    <h1>Golf Tracker v2</h1>
-    <p>Foundation Build</p>
+
+<h1>Golf Tracker v2</h1>
+
+<p>Golf Canada Handicap Tracking System</p>
+
 </header>
 
+
+
 <nav>
-    <button onclick="showPage('dashboard')">Dashboard</button>
-    <button onclick="showPage('scores')">Scores</button>
-    <button onclick="showPage('handicap')">Handicap</button>
-    <button onclick="showPage('stats')">Statistics</button>
-    <button onclick="showPage('settings')">Settings</button>
+
+<button onclick="showPage('dashboard')">
+Dashboard
+</button>
+
+<button onclick="showPage('scores')">
+Rounds
+</button>
+
+<button onclick="showPage('handicap')">
+Handicap
+</button>
+
+<button onclick="showPage('stats')">
+Statistics
+</button>
+
+<button onclick="loadGoogleSheet()">
+Refresh Data
+</button>
+
 </nav>
+
+
+
 
 <main>
 
+
+
+<!-- DASHBOARD -->
+
 <section id="dashboard" class="panel page">
+
 
 <h2>Dashboard</h2>
 
-<p>
-Welcome to Golf Tracker v2.
-</p>
 
-<ul>
-<li>Store rounds locally</li>
-<li>Track players</li>
-<li>Future handicap engine</li>
-<li>Statistics</li>
-<li>What-if simulator (coming)</li>
-<li>Time Machine (coming)</li>
-</ul>
+<div id="statsText">
 
-</section>
-
-<section id="scores" class="panel page hidden">
-
-<h2>Add Round</h2>
-
-<div class="grid">
-
-<div>
-<label>Player</label>
-<select id="player">
-<option>Mike</option>
-<option>Johnny</option>
-</select>
-</div>
-
-<div>
-<label>Date</label>
-<input id="date" type="date">
-</div>
-
-<div>
-<label>Course</label>
-<input id="course">
-</div>
-
-<div>
-<label>Score</label>
-<input id="score" type="number">
-</div>
-
-<div>
-<label>Course Rating</label>
-<input id="rating" type="number" step=".1">
-</div>
-
-<div>
-<label>Slope</label>
-<input id="slope" type="number">
-</div>
+Loading spreadsheet data...
 
 </div>
+
 
 <br>
 
-<button onclick="saveRound()">Save Round</button>
+
+<div id="playerStats" class="summary-box">
+
+</div>
+
+
+</section>
+
+
+
+
+
+
+<!-- ROUNDS -->
+
+<section id="scores" class="panel page hidden">
+
+
+<h2>Round History</h2>
+
+
+<p>
+Data is automatically loaded from the connected Google Sheet.
+</p>
+
+
 
 <table id="roundTable">
+
 
 <thead>
 
 <tr>
-<th>Player</th>
-<th>Date</th>
-<th>Course</th>
-<th>Score</th>
-<th>Rating</th>
-<th>Slope</th>
+
+<th>
+Player
+</th>
+
+
+<th>
+Date
+</th>
+
+
+<th>
+Course
+</th>
+
+
+<th>
+Score
+</th>
+
+
+<th>
+Rating
+</th>
+
+
+<th>
+Slope
+</th>
+
+
+<th>
+Tee
+</th>
+
+
 </tr>
 
 </thead>
 
-<tbody></tbody>
+
+
+<tbody>
+
+
+</tbody>
+
 
 </table>
 
+
 </section>
+
+
+
+
+
+
+
+<!-- HANDICAP -->
 
 <section id="handicap" class="panel page hidden">
 
-<h2>Handicap</h2>
 
-<p id="handicapText">
+<h2>Handicap Index</h2>
 
-No handicap calculation installed yet.
 
-</p>
+<div class="notice">
 
-</section>
 
-<section id="stats" class="panel page hidden">
+Golf Canada handicap calculations will appear here in Deliverable 4.
 
-<h2>Statistics</h2>
-
-<div id="statsText">
-
-No statistics yet.
 
 </div>
 
-</section>
 
-<section id="settings" class="panel page hidden">
 
-<h2>Settings</h2>
+<div id="handicapResults">
 
-<p>
 
-All information is currently stored in your browser using Local Storage.
+Waiting for handicap engine...
 
-</p>
 
-<button onclick="resetData()">
+</div>
 
-Delete All Saved Data
-
-</button>
 
 </section>
+
+
+
+
+
+
+
+
+<!-- STATISTICS -->
+
+<section id="stats" class="panel page hidden">
+
+
+<h2>Performance Statistics</h2>
+
+
+<div id="statistics">
+
+
+Statistics module coming next.
+
+
+</div>
+
+
+</section>
+
+
+
+
+
+
+
 
 </main>
+
+
+
+
 
 <footer>
 
@@ -262,93 +241,50 @@ Golf Tracker v2
 
 </footer>
 
+
+
+
+
+
+<script src="app.js"></script>
+
+
+
 <script>
 
-let rounds=JSON.parse(localStorage.getItem("golfRounds")||"[]");
 
-function showPage(id){
+function showPage(pageID){
 
-document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
 
-document.getElementById(id).classList.remove("hidden");
+document
+.querySelectorAll(".page")
+.forEach(page=>{
 
-}
-
-function saveRound(){
-
-const round={
-
-player:player.value,
-
-date:date.value,
-
-course:course.value,
-
-score:Number(score.value),
-
-rating:Number(rating.value),
-
-slope:Number(slope.value)
-
-};
-
-rounds.push(round);
-
-localStorage.setItem("golfRounds",JSON.stringify(rounds));
-
-renderTable();
-
-}
-
-function renderTable(){
-
-const tbody=document.querySelector("#roundTable tbody");
-
-tbody.innerHTML="";
-
-rounds.forEach(r=>{
-
-tbody.innerHTML+=`
-
-<tr>
-
-<td>${r.player}</td>
-
-<td>${r.date}</td>
-
-<td>${r.course}</td>
-
-<td>${r.score}</td>
-
-<td>${r.rating}</td>
-
-<td>${r.slope}</td>
-
-</tr>
-
-`;
+page.classList.add("hidden");
 
 });
 
-}
 
-function resetData(){
+const selected =
+document.getElementById(pageID);
 
-if(confirm("Delete all saved rounds?")){
 
-rounds=[];
+if(selected){
 
-localStorage.removeItem("golfRounds");
-
-renderTable();
+selected.classList.remove("hidden");
 
 }
 
+
 }
 
-renderTable();
+
 
 </script>
 
+
+
 </body>
+
+
 </html>
