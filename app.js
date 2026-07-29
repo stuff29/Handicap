@@ -921,3 +921,57 @@ selected.classList.remove(
 
 
 }
+
+
+// ==========================================================
+// ROUND TABLE DISPLAY
+// ==========================================================
+
+function renderTable(){
+
+    const tbody =
+        document.querySelector("#roundTable tbody");
+
+
+    if(!tbody){
+        return;
+    }
+
+
+    tbody.innerHTML = "";
+
+
+    rounds
+    .sort(
+        (a,b)=>
+        new Date(b.date) - new Date(a.date)
+    )
+    .forEach(round=>{
+
+
+        tbody.innerHTML += `
+
+        <tr>
+
+        <td>${round.player}</td>
+
+        <td>${round.date}</td>
+
+        <td>${round.course}</td>
+
+        <td>${round.score}</td>
+
+        <td>${round.rating}</td>
+
+        <td>${round.slope}</td>
+
+        <td>${round.tee}</td>
+
+        </tr>
+
+        `;
+
+
+    });
+
+}
