@@ -57,13 +57,22 @@ window.CSV = {
 
 
 
-        const lines = csvText
-            .trim()
-            .split(/\r?\n/);
+        /*
+          Normalize line endings
+        */
+
+        csvText = csvText
+            .replace(/\r\n/g, "\n")
+            .replace(/\r/g, "\n");
 
 
 
-        if (lines.length < 2) {
+        const rows =
+            this.parseCSV(csvText);
+
+
+
+        if (rows.length < 2) {
 
             return [];
 
@@ -71,51 +80,18 @@ window.CSV = {
 
 
 
-        /*
-          Detect delimiter
-        */
-
-        let delimiter = ",";
-
-
-        if (lines[0].includes("\t")) {
-
-            delimiter = "\t";
-
-        }
-
-
-
-        let headers = this.parseLine(
-            lines[0],
-            delimiter
-        );
-
-
-
-        /*
-          Remove Google Sheets BOM character
-        */
-
-        headers = headers.map(
-            header =>
-                header
+        let headers =
+            rows[0].map(
+                h =>
+                h
                 .replace(/^\uFEFF/, "")
                 .trim()
-        );
+            );
 
 
 
         console.log(
-            "Detected delimiter:",
-            delimiter === "\t"
-                ? "TAB"
-                : "COMMA"
-        );
-
-
-        console.log(
-            "Parsed headers:",
+            "Headers detected:",
             headers
         );
 
@@ -127,24 +103,9 @@ window.CSV = {
 
         for (
             let i = 1;
-            i < lines.length;
+            i < rows.length;
             i++
         ) {
-
-
-            if (!lines[i].trim()) {
-
-                continue;
-
-            }
-
-
-
-            const values = this.parseLine(
-                lines[i],
-                delimiter
-            );
-
 
 
             const row = {};
@@ -156,9 +117,9 @@ window.CSV = {
 
 
                     row[header] =
-                        values[index]
+                        rows[i][index]
                         ?
-                        values[index].trim()
+                        rows[i][index].trim()
                         :
                         "";
 
@@ -230,49 +191,104 @@ window.CSV = {
 
 
 
-    parseLine(line, delimiter) {
+    /*
+      Full CSV parser
+    */
+
+    parseCSV(text) {
 
 
-        const result = [];
+        const rows = [];
 
-        let current = "";
+        let row = [];
 
-        let insideQuotes = false;
+        let value = "";
+
+        let quotes = false;
 
 
 
         for (
             let i = 0;
-            i < line.length;
+            i < text.length;
             i++
         ) {
 
 
-            const char = line[i];
+            const char =
+                text[i];
 
 
 
-            if (char === '"') {
+            const next =
+                text[i + 1];
 
 
-                insideQuotes =
-                    !insideQuotes;
+
+            if (
+                char === '"'
+            ) {
+
+
+                if (
+                    quotes &&
+                    next === '"'
+                ) {
+
+
+                    value += '"';
+
+                    i++;
+
+                }
+
+                else {
+
+
+                    quotes =
+                        !quotes;
+
+
+                }
 
 
             }
 
             else if (
-                char === delimiter &&
-                !insideQuotes
+                char === "," &&
+                !quotes
             ) {
 
 
-                result.push(
-                    current
+                row.push(
+                    value
                 );
 
 
-                current = "";
+                value = "";
+
+
+            }
+
+            else if (
+                char === "\n" &&
+                !quotes
+            ) {
+
+
+                row.push(
+                    value
+                );
+
+
+                rows.push(
+                    row
+                );
+
+
+                row = [];
+
+                value = "";
 
 
             }
@@ -280,7 +296,7 @@ window.CSV = {
             else {
 
 
-                current += char;
+                value += char;
 
 
             }
@@ -290,12 +306,27 @@ window.CSV = {
 
 
 
-        result.push(
-            current
-        );
+        if (
+            value.length ||
+            row.length
+        ) {
 
 
-        return result;
+            row.push(
+                value
+            );
+
+
+            rows.push(
+                row
+            );
+
+
+        }
+
+
+
+        return rows;
 
 
     }
