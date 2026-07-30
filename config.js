@@ -16,7 +16,7 @@ window.GolfConfig = {
 
     CSV_URL:
 
-        "https://docs.google.com/spreadsheets/d/1Xk9ZIqOW5zBehjcnJr7xQjMQ38Ns_iwf6VGxPr9moow/edit?gid=0#gid=0",
+        "https://docs.google.com/spreadsheets/d/1Xk9ZIqOW5zBehjcnJr7xQjMQ38Ns_iwf6VGxPr9moow/export?format=csv",
 
 
 
