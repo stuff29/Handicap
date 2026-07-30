@@ -140,6 +140,11 @@ window.Handicap = {
         });
 
 
+player.rounds =
+    WHS.identifyCountingRounds(
+        player.rounds
+    );
+
 
         player.averageDifferential =
 
