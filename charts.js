@@ -185,12 +185,14 @@ window.Charts = {
 
 
 
-        return history.filter(
+return history.filter(
 
-            item =>
-            item.value !== null
+    item =>
 
-        );
+    item.value !== null &&
+    !Number.isNaN(item.value)
+
+);
 
 
     },
