@@ -1,6 +1,6 @@
 /* ==========================================
    Golf Tracker v3
-   Google Sheet CSV Loader
+   CSV Data Loader
    ========================================== */
 
 "use strict";
@@ -9,55 +9,36 @@
 window.CSV = {
 
 
-    /* ================================
-       Load CSV Data
-    ================================= */
-
-
     async loadCSV() {
 
 
-        let url =
-            GolfConfig.CSV_URL;
-
-
-
         if(
-            (!url || url.trim() === "") &&
-            typeof StorageManager !== "undefined"
+            !GolfConfig.CSV_URL ||
+            GolfConfig.CSV_URL.includes(
+                "PASTE"
+            )
         ){
-
-            url =
-                StorageManager.getCSVURL();
-
-        }
-
-
-
-        if(!url || url.trim() === "") {
-
 
             throw new Error(
                 "No Google Sheet CSV URL configured."
             );
-
 
         }
 
 
 
         const response =
-            await fetch(url);
+            await fetch(
+                GolfConfig.CSV_URL
+            );
 
 
 
-        if(!response.ok) {
-
+        if(!response.ok){
 
             throw new Error(
                 "Unable to load CSV file."
             );
-
 
         }
 
@@ -66,6 +47,190 @@ window.CSV = {
         return await response.text();
 
 
+    },
+
+
+
+
+
+    parseRounds(csvText){
+
+
+        if(!csvText){
+
+            return [];
+
+        }
+
+
+
+        /*
+          Detect delimiter
+
+          Google Sheets may return:
+          comma CSV
+          or tab separated CSV
+        */
+
+
+        const delimiter =
+
+            csvText.includes("\t")
+
+            ? "\t"
+
+            : ",";
+
+
+
+
+        const lines =
+
+            csvText
+
+            .trim()
+
+            .split(/\r?\n/);
+
+
+
+        if(lines.length < 2){
+
+            return [];
+
+        }
+
+
+
+        const headers =
+
+            this.parseLine(
+                lines[0],
+                delimiter
+            )
+
+            .map(header =>
+
+                header.trim()
+
+            );
+
+
+
+        const rounds = [];
+
+
+
+        for(
+            let i = 1;
+            i < lines.length;
+            i++
+        ){
+
+
+            if(
+                !lines[i].trim()
+            ){
+
+                continue;
+
+            }
+
+
+
+            const values =
+
+                this.parseLine(
+                    lines[i],
+                    delimiter
+                );
+
+
+
+            const row = {};
+
+
+
+            headers.forEach(
+                (header,index)=>{
+
+
+                    row[header] =
+
+                        values[index]
+                        ?
+                        values[index].trim()
+                        :
+                        "";
+
+
+
+                }
+
+            );
+
+
+
+            if(
+                row.Player &&
+                row.Score
+            ){
+
+
+                rounds.push({
+
+
+                    player:
+                        row.Player,
+
+
+                    score:
+                        Number(row.Score),
+
+
+                    date:
+                        row.Date,
+
+
+                    course:
+                        row.Course,
+
+
+                    slope:
+                        Number(row.Slope),
+
+
+                    rating:
+                        Number(row.Rating),
+
+
+                    tee:
+                        row.Tee
+
+
+
+                });
+
+
+            }
+
+
+        }
+
+
+
+        console.log(
+
+            "CSV rounds loaded:",
+
+            rounds.length
+
+        );
+
+
+
+        return rounds;
+
 
     },
 
@@ -73,47 +238,29 @@ window.CSV = {
 
 
 
-    /* ================================
-       CSV Parser
-    ================================= */
+    parseLine(
+        line,
+        delimiter
+    ){
 
 
-    parseCSV(text) {
+        const result = [];
 
-
-        const rows = [];
-
-        let row = [];
-
-        let value = "";
+        let current = "";
 
         let insideQuotes = false;
 
 
 
-        for(let i = 0; i < text.length; i++){
+        for(
+            let i=0;
+            i<line.length;
+            i++
+        ){
 
 
             const char =
-                text[i];
-
-
-            const next =
-                text[i + 1];
-
-
-
-            if(char === '"' && insideQuotes && next === '"'){
-
-
-                value += '"';
-
-                i++;
-
-                continue;
-
-
-            }
+                line[i];
 
 
 
@@ -124,281 +271,50 @@ window.CSV = {
                     !insideQuotes;
 
 
-                continue;
-
-
             }
 
+            else if(
 
+                char === delimiter &&
 
-            if(char === "," && !insideQuotes){
-
-
-                row.push(value.trim());
-
-                value = "";
-
-                continue;
-
-
-            }
-
-
-
-            if(
-                (char === "\n" || char === "\r") &&
                 !insideQuotes
+
             ){
 
 
-                if(value.length > 0 || row.length > 0){
+                result.push(
+                    current
+                );
 
 
-                    row.push(
-                        value.trim()
-                    );
+                current = "";
 
 
-                    rows.push(row);
+            }
+
+            else {
 
 
-                }
-
-
-                row = [];
-
-                value = "";
-
-
-                continue;
+                current += char;
 
 
             }
 
 
-
-            value += char;
-
-
         }
 
 
 
-        if(value.length > 0 || row.length > 0){
-
-
-            row.push(
-                value.trim()
-            );
-
-
-            rows.push(row);
-
-
-        }
-
-
-
-        return rows;
-
-
-    },
-
-
-
-
-
-
-    /* ================================
-       Convert CSV To Objects
-    ================================= */
-
-
-    parseRounds(text){
-
-
-        const rows =
-            this.parseCSV(text);
-
-
-
-        if(rows.length < 2){
-
-
-            return [];
-
-
-        }
-
-
-
-        const headers =
-            rows[0].map(
-                header =>
-                    header
-                    .trim()
-                    .toLowerCase()
-            );
-
-
-
-        const rounds = [];
-
-
-
-        for(let i = 1; i < rows.length; i++){
-
-
-
-            const row =
-                rows[i];
-
-
-
-            if(row.length === 0){
-
-                continue;
-
-            }
-
-
-
-            const round = {};
-
-
-
-            headers.forEach(
-                (header,index)=>{
-
-
-                    round[header] =
-                        row[index] ?? "";
-
-
-                }
-            );
-
-
-
-
-            const cleaned = {
-
-
-                player:
-                    this.cleanPlayer(
-                        round.player
-                    ),
-
-
-                score:
-                    Number(
-                        round.score
-                    ),
-
-
-                date:
-                    round.date,
-
-
-                course:
-                    round.course || "",
-
-
-                slope:
-                    Number(
-                        round.slope
-                    ),
-
-
-                rating:
-                    Number(
-                        round.rating
-                    ),
-
-
-                tee:
-                    round.tee || ""
-
-
-
-            };
-
-
-
-            if(
-                cleaned.player &&
-                !isNaN(cleaned.score)
-            ){
-
-                rounds.push(cleaned);
-
-            }
-
-
-
-        }
-
-
-
-        return rounds;
-
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Player Cleanup
-    ================================= */
-
-
-    cleanPlayer(player){
-
-
-        if(!player){
-
-            return "";
-
-        }
-
-
-
-        const name =
-            player
-            .trim()
-            .toLowerCase();
-
-
-
-        if(name === "mike"){
-
-            return "Mike";
-
-        }
-
-
-
-        if(name === "johnny"){
-
-            return "Johnny";
-
-        }
-
-
-
-        return (
-            player
-            .trim()
+        result.push(
+            current
         );
 
 
+
+        return result;
+
+
     }
-
-
-
 
 
 };
