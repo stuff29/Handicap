@@ -366,89 +366,77 @@ window.WHS = {
     ================================= */
 
 
-    identifyCountingRounds(rounds) {
+identifyCountingRounds(rounds) {
 
 
-        const withDiff =
+    const withDiff = rounds.map(round => ({
 
-            rounds.map(
-                round => ({
+        ...round,
 
-                    ...round,
+        differential:
+            this.calculateDifferential(round)
 
-                    differential:
-                    this.calculateDifferential(
-                        round
-                    )
-
-                })
-            );
+    }));
 
 
+    /*
+       WHS uses the most recent 20 rounds
+       when 20+ rounds exist
+    */
 
-        const sorted =
-
-            [...withDiff]
-
-            .sort(
-                (a,b)=>
-
-                a.differential -
-                b.differential
-
-            );
+    const recentRounds =
+        withDiff.length > 20
+            ? withDiff.slice(
+                withDiff.length - 20
+            )
+            : withDiff;
 
 
 
-        const count =
-
-            this.getCountingRoundNumber(
-                rounds.length
-            );
-
-
-
-        const countingIds =
-
-            sorted
-
-            .slice(0,count)
-
-            .map(
-                round =>
-                round
-            );
+    const sorted = [...recentRounds]
+        .sort(
+            (a,b) =>
+            a.differential -
+            b.differential
+        );
 
 
 
-        return rounds.map(round => {
-
-
-            const isCounting =
-
-                countingIds.includes(
-                    round
-                );
+    const count =
+        this.getCountingRoundNumber(
+            recentRounds.length
+        );
 
 
 
-            return {
-
-                ...round,
-
-                counting:
-                    isCounting
-
-            };
-
-
-        });
+    const countingRounds =
+        sorted.slice(0,count);
 
 
 
-    },
+    const countingDates =
+        new Set(
+            countingRounds.map(
+                r =>
+                r.date
+            )
+        );
 
 
+
+    return withDiff.map(round => ({
+
+        ...round,
+
+        counting:
+            countingDates.has(
+                round.date
+            )
+
+    }));
+
+
+},
 
 
 
