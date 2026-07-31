@@ -44,9 +44,8 @@ window.Dashboard = {
         );
 
 
-        this.renderSolver(
-            players
-        );
+        this.renderSolver();
+
 
 
     },
@@ -155,51 +154,30 @@ window.Dashboard = {
     ================================= */
 
 
-renderSolver(players) {
+    renderSolver() {
 
 
-    if(!window.Solver) {
-
-        console.warn(
-            "Solver module unavailable."
-        );
-
-        return;
-
-    }
+        if(!window.Solver) {
 
 
-    Solver.solve(
-        "Mike",
-        10
-    );
+            console.warn(
+                "Solver module unavailable."
+            );
 
 
-    const mikeResult =
-        document.getElementById(
-            "solverResults"
+            return;
+
+        }
+
+
+
+        Solver.solve(
+            "Mike",
+            10
         );
 
 
-    if(!mikeResult) {
-
-        return;
-
-    }
-
-
-    const currentMike =
-        mikeResult.innerHTML;
-
-
-
-    Solver.solve(
-        "Johnny",
-        15
-    );
-
-
-}
+    },
 
 
 
