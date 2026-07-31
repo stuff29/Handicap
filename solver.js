@@ -28,7 +28,6 @@ window.Solver = {
         this.rounds = rounds || [];
 
 
-
         this.attachEvents();
 
 
@@ -250,7 +249,6 @@ window.Solver = {
             differentials.length < 3
         ) {
 
-
             return null;
 
         }
@@ -308,11 +306,14 @@ window.Solver = {
 
             current,
 
+
             requiredDifferential:
+
                 requiredAverage,
 
 
             estimatedScore:
+
                 scoreEstimate,
 
 
@@ -375,7 +376,6 @@ window.Solver = {
         );
 
 
-
     },
 
 
@@ -419,9 +419,10 @@ window.Solver = {
 
 
             <h3>
+
                 ${player.name}
-                Target:
-                ${target.toFixed(1)}
+                Handicap Goal
+
             </h3>
 
 
@@ -444,8 +445,39 @@ window.Solver = {
 
             <p>
 
-                Required Average
-                Differential:
+                Target Handicap:
+
+                <strong>
+
+                ${target.toFixed(1)}
+
+                </strong>
+
+            </p>
+
+
+
+            <p>
+
+                Improvement Required:
+
+                <strong>
+
+                ${Utils.formatHandicap(
+                    analysis.improvement
+                )}
+
+                strokes
+
+                </strong>
+
+            </p>
+
+
+
+            <p>
+
+                Required Average Differential:
 
                 <strong>
 
@@ -455,6 +487,17 @@ window.Solver = {
 
                 </strong>
 
+            </p>
+
+
+
+            <hr>
+
+
+
+            <p>
+
+                Based on your recent performance:
 
             </p>
 
@@ -462,25 +505,26 @@ window.Solver = {
 
             <p>
 
-                Estimated Future Score:
+                Average score needed over your
+                next 5 rounds:
 
-                <strong>
+                <br>
 
-                ${analysis.estimatedScore}
+                <strong style="font-size:1.5em">
+
+                    ${analysis.estimatedScore}
 
                 </strong>
 
-
             </p>
 
 
 
             <p>
 
-                This estimate assumes
-                future rounds replace
-                weaker counting rounds
-                in the Best 8 of 20.
+                This projection assumes future
+                rounds replace weaker counting
+                rounds in the Best 8 of 20.
 
             </p>
 
