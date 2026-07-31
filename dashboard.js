@@ -44,6 +44,11 @@ window.Dashboard = {
         );
 
 
+        this.renderSolver(
+            players
+        );
+
+
     },
 
 
@@ -113,15 +118,18 @@ window.Dashboard = {
                     )}
                 </p>
 
+
                 <p>
                     <strong>Rounds:</strong>
                     ${player.totalRounds}
                 </p>
 
+
                 <p>
                     <strong>Average Score:</strong>
                     ${player.averageScore ?? "--"}
                 </p>
+
 
                 <p>
                     <strong>Average Differential:</strong>
@@ -134,6 +142,167 @@ window.Dashboard = {
 
 
         }
+
+
+    },
+
+
+
+
+
+    /* ================================
+       Solver Integration
+    ================================= */
+
+
+    renderSolver(players) {
+
+
+        const container =
+
+            document.getElementById(
+                "solverResults"
+            );
+
+
+
+        if(!container) {
+
+            return;
+
+        }
+
+
+
+        if(!window.Solver) {
+
+
+            container.innerHTML = `
+
+                <div class="card">
+
+                    Solver unavailable.
+
+                </div>
+
+            `;
+
+
+            return;
+
+        }
+
+
+
+        const mike =
+
+            players.Mike;
+
+
+
+        const johnny =
+
+            players.Johnny;
+
+
+
+        let html = "";
+
+
+
+        html += `
+
+
+        <div class="card">
+
+
+            <h2>
+                Handicap Goal Solver
+            </h2>
+
+
+        `;
+
+
+
+        if(mike) {
+
+
+            html += `
+
+
+            <h3>
+                Mike
+            </h3>
+
+
+            <p>
+                Current Handicap:
+                ${Utils.formatHandicap(
+                    mike.handicap
+                )}
+            </p>
+
+
+            <p>
+                Target:
+                10.0
+            </p>
+
+
+            `;
+
+
+        }
+
+
+
+        html += "<hr>";
+
+
+
+        if(johnny) {
+
+
+            html += `
+
+
+            <h3>
+                Johnny
+            </h3>
+
+
+            <p>
+                Current Handicap:
+                ${Utils.formatHandicap(
+                    johnny.handicap
+                )}
+            </p>
+
+
+            <p>
+                Target:
+                15.0
+            </p>
+
+
+            `;
+
+
+        }
+
+
+
+        html += `
+
+        </div>
+
+        `;
+
+
+
+        container.innerHTML = html;
+
 
 
     },
