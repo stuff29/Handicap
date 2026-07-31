@@ -155,157 +155,51 @@ window.Dashboard = {
     ================================= */
 
 
-    renderSolver(players) {
+renderSolver(players) {
 
 
-        const container =
+    if(!window.Solver) {
 
-            document.getElementById(
-                "solverResults"
-            );
+        console.warn(
+            "Solver module unavailable."
+        );
 
+        return;
 
+    }
 
-        if(!container) {
 
-            return;
+    Solver.solve(
+        "Mike",
+        10
+    );
 
-        }
 
+    const mikeResult =
+        document.getElementById(
+            "solverResults"
+        );
 
 
-        if(!window.Solver) {
+    if(!mikeResult) {
 
+        return;
 
-            container.innerHTML = `
+    }
 
-                <div class="card">
 
-                    Solver unavailable.
+    const currentMike =
+        mikeResult.innerHTML;
 
-                </div>
 
-            `;
 
+    Solver.solve(
+        "Johnny",
+        15
+    );
 
-            return;
 
-        }
-
-
-
-        const mike =
-
-            players.Mike;
-
-
-
-        const johnny =
-
-            players.Johnny;
-
-
-
-        let html = "";
-
-
-
-        html += `
-
-
-        <div class="card">
-
-
-            <h2>
-                Handicap Goal Solver
-            </h2>
-
-
-        `;
-
-
-
-        if(mike) {
-
-
-            html += `
-
-
-            <h3>
-                Mike
-            </h3>
-
-
-            <p>
-                Current Handicap:
-                ${Utils.formatHandicap(
-                    mike.handicap
-                )}
-            </p>
-
-
-            <p>
-                Target:
-                10.0
-            </p>
-
-
-            `;
-
-
-        }
-
-
-
-        html += "<hr>";
-
-
-
-        if(johnny) {
-
-
-            html += `
-
-
-            <h3>
-                Johnny
-            </h3>
-
-
-            <p>
-                Current Handicap:
-                ${Utils.formatHandicap(
-                    johnny.handicap
-                )}
-            </p>
-
-
-            <p>
-                Target:
-                15.0
-            </p>
-
-
-            `;
-
-
-        }
-
-
-
-        html += `
-
-        </div>
-
-        `;
-
-
-
-        container.innerHTML = html;
-
-
-
-    },
+}
 
 
 
