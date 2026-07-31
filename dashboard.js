@@ -44,8 +44,10 @@ window.Dashboard = {
         );
 
 
-        this.renderSolver();
 
+        this.renderSolver(
+            players
+        );
 
 
     },
@@ -125,10 +127,10 @@ window.Dashboard = {
 
 
                 <p>
-<strong>Average Score:</strong>
-${player.averageScore !== undefined
-    ? Math.round(player.averageScore)
-    : "--"}
+                    <strong>Average Score:</strong>
+                    ${player.averageScore !== undefined
+                        ? Math.round(player.averageScore)
+                        : "--"}
                 </p>
 
 
@@ -156,7 +158,7 @@ ${player.averageScore !== undefined
     ================================= */
 
 
-    renderSolver() {
+    renderSolver(players) {
 
 
         if(!window.Solver) {
@@ -173,10 +175,11 @@ ${player.averageScore !== undefined
 
 
 
-        Solver.solve(
-            "Mike",
-            10
-        );
+        Solver.players = players;
+
+
+
+        Solver.renderGoals();
 
 
     },
