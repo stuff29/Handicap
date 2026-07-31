@@ -125,8 +125,10 @@ window.Dashboard = {
 
 
                 <p>
-                    <strong>Average Score:</strong>
-                    ${player.averageScore ?? "--"}
+<strong>Average Score:</strong>
+${player.averageScore !== undefined
+    ? Math.round(player.averageScore)
+    : "--"}
                 </p>
 
 
