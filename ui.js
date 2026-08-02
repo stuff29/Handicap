@@ -284,48 +284,91 @@ window.UI = {
 
 
 
-    showSection(sectionId) {
+    showSection(sectionId){
 
 
-        const sections =
+    const sections =
+        document.querySelectorAll(
+            ".app-section"
+        );
 
-            document.querySelectorAll(
-                ".app-section"
+
+    sections.forEach(section=>{
+
+
+        if(section.id === sectionId){
+
+
+            section.style.display = "block";
+
+            section.classList.add(
+                "active"
             );
 
 
+        }
 
-        sections.forEach(section => {
-
-
-            section.style.display =
-
-                section.id === sectionId
-
-                ? "block"
-
-                : "none";
+        else{
 
 
-        });
+            section.style.display = "none";
 
-
-
-        if(
-            typeof StorageManager !==
-            "undefined"
-        ) {
-
-
-            StorageManager.saveCurrentPage(
-                sectionId
+            section.classList.remove(
+                "active"
             );
 
 
         }
 
 
-    },
+    });
+
+
+
+    const buttons =
+        document.querySelectorAll(
+            ".nav-btn"
+        );
+
+
+    buttons.forEach(button=>{
+
+
+        if(
+            button.dataset.section === sectionId
+        ){
+
+            button.classList.add(
+                "active"
+            );
+
+        }
+
+        else{
+
+            button.classList.remove(
+                "active"
+            );
+
+        }
+
+
+    });
+
+
+
+    if(
+        typeof StorageManager !== "undefined"
+    ){
+
+        StorageManager.saveCurrentPage(
+            sectionId
+        );
+
+    }
+
+
+}
 
 
 
