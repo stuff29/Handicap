@@ -1,7 +1,8 @@
 /* ==========================================
    Golf Tracker v3
    Round Impact Analyzer
-   Deliverable 34B
+   Deliverable 34C
+   Raw Round Comparison Engine
    ========================================== */
 
 "use strict";
@@ -45,12 +46,20 @@ window.Impact = {
         }
 
 
-        const rounds =
-            player.rounds || [];
+
+        const allRounds =
+
+            this.rounds.filter(
+
+                round =>
+
+                round.player === player.name
+
+            );
 
 
 
-        if(rounds.length === 0){
+        if(allRounds.length === 0){
 
             return null;
 
@@ -59,30 +68,38 @@ window.Impact = {
 
 
         const latest =
-            rounds[
-                rounds.length - 1
+
+            allRounds[
+                allRounds.length - 1
             ];
 
 
 
-        const currentHandicap =
-            WHS.calculateHandicapIndex(
-                rounds
-            );
-
-
-
         const previousRounds =
-            rounds.slice(
+
+            allRounds.slice(
                 0,
                 -1
             );
 
 
 
-        const previousHandicap =
+        const currentHandicap =
+
             WHS.calculateHandicapIndex(
+
+                allRounds
+
+            );
+
+
+
+        const previousHandicap =
+
+            WHS.calculateHandicapIndex(
+
                 previousRounds
+
             );
 
 
@@ -90,8 +107,11 @@ window.Impact = {
         const removed =
 
             this.findRemovedRound(
+
                 previousRounds,
-                rounds
+
+                allRounds
+
             );
 
 
@@ -104,6 +124,7 @@ window.Impact = {
         let reason =
 
             "Latest round did not change your Best 8 of 20.";
+
 
 
 
@@ -129,7 +150,7 @@ window.Impact = {
 
                 reason =
 
-                "Latest round replaced a higher differential in your Best 8 of 20.";
+                "Your latest round entered your Best 8 of 20 and replaced a higher differential.";
 
 
             }
@@ -139,13 +160,14 @@ window.Impact = {
 
                 reason =
 
-                "Latest round improved your counting scores.";
+                "Your latest round improved your counting scores.";
 
 
             }
 
 
         }
+
 
 
 
@@ -171,7 +193,7 @@ window.Impact = {
 
                 reason =
 
-                "Latest round replaced a lower differential in your Best 8 of 20.";
+                "Your latest round replaced a stronger counting round.";
 
 
             }
@@ -181,7 +203,7 @@ window.Impact = {
 
                 reason =
 
-                "Counting round averages increased.";
+                "Your counting average increased.";
 
 
             }
@@ -191,10 +213,13 @@ window.Impact = {
 
 
 
+
+
         return {
 
 
             player:
+
                 player.name,
 
 
@@ -205,6 +230,7 @@ window.Impact = {
 
 
             change:
+
                 currentHandicap -
                 previousHandicap,
 
@@ -231,7 +257,7 @@ window.Impact = {
 
 
     /* ================================
-       Find Removed Counting Round
+       Find Replaced Counting Round
     ================================= */
 
 
@@ -242,7 +268,9 @@ window.Impact = {
         const beforeCounting =
 
             this.getCountingRounds(
+
                 before
+
             );
 
 
@@ -250,7 +278,9 @@ window.Impact = {
         const afterCounting =
 
             this.getCountingRounds(
+
                 after
+
             );
 
 
@@ -295,27 +325,41 @@ window.Impact = {
 
 
     /* ================================
-       Counting Round Helper
+       Get WHS Counting Rounds
     ================================= */
 
 
     getCountingRounds(rounds){
 
 
-        if(
-            !rounds ||
-            rounds.length === 0
-        ){
+        const prepared =
 
-            return [];
+            rounds.map(
 
-        }
+                round => ({
+
+
+                    ...round,
+
+
+                    differential:
+
+                    WHS.calculateDifferential(
+
+                        round
+
+                    )
+
+
+                })
+
+            );
 
 
 
         return WHS.identifyCountingRounds(
 
-            [...rounds]
+            prepared
 
         );
 
@@ -327,7 +371,7 @@ window.Impact = {
 
 
     /* ================================
-       Unique Round Identifier
+       Unique Round Key
     ================================= */
 
 
@@ -342,7 +386,10 @@ window.Impact = {
 
             round.score,
 
-            round.differential
+            Number(
+                round.differential
+            ).toFixed(1)
+
 
         ].join("|");
 
@@ -364,7 +411,9 @@ window.Impact = {
         const container =
 
             document.getElementById(
+
                 "impactResults"
+
             );
 
 
@@ -372,7 +421,9 @@ window.Impact = {
         if(!container){
 
             console.warn(
+
                 "Impact results container missing."
+
             );
 
             return;
@@ -383,11 +434,14 @@ window.Impact = {
 
         let html = `
 
+
         <div class="card">
+
 
         <h2>
         Latest Round Impact
         </h2>
+
 
         `;
 
@@ -402,7 +456,9 @@ window.Impact = {
             const impact =
 
                 this.analyzePlayer(
+
                     player
+
                 );
 
 
@@ -422,12 +478,13 @@ window.Impact = {
 
 
             <h3>
-            ${player.name}
+            ${impact.player}
             </h3>
 
 
 
             <p>
+
             Previous Handicap:
 
             <strong>
@@ -452,6 +509,7 @@ window.Impact = {
 
 
             <p>
+
             Current Handicap:
 
             <strong>
@@ -465,6 +523,7 @@ window.Impact = {
 
 
             <p>
+
             Result:
 
             <strong>
@@ -478,6 +537,7 @@ window.Impact = {
 
 
             <p>
+
             Reason:
 
             <br>
@@ -488,7 +548,6 @@ window.Impact = {
 
 
 
-
             <p>
 
             Latest Round:
@@ -496,11 +555,13 @@ window.Impact = {
             <br>
 
             Date:
+
             ${impact.latest.date}
 
             <br>
 
             Score:
+
             ${impact.latest.score}
 
             <br>
@@ -516,9 +577,12 @@ window.Impact = {
 
                 :
 
-                "--"
+                WHS.calculateDifferential(
+                    impact.latest
+                ).toFixed(1)
 
             }
+
 
             </p>
 
@@ -550,19 +614,7 @@ window.Impact = {
                 <br>
 
                 Differential:
-
-                ${
-                    impact.removed.differential
-
-                    ?
-
-                    impact.removed.differential.toFixed(1)
-
-                    :
-
-                    "--"
-
-                }
+                ${impact.removed.differential.toFixed(1)}
 
                 </p>
 
@@ -573,6 +625,7 @@ window.Impact = {
                 ""
 
             }
+
 
 
             `;
@@ -591,8 +644,7 @@ window.Impact = {
 
 
 
-        container.innerHTML =
-            html;
+        container.innerHTML = html;
 
 
     }
