@@ -1,6 +1,7 @@
 /* ==========================================
    Golf Tracker v3
    Round Impact Analyzer
+   Deliverable 34
    ========================================== */
 
 "use strict";
@@ -9,10 +10,9 @@
 window.Impact = {
 
 
-    players: {},
+    players:{},
 
-    rounds: [],
-
+    rounds:[],
 
 
     /* ================================
@@ -20,13 +20,11 @@ window.Impact = {
     ================================= */
 
 
-    initialize(players, rounds) {
-
+    initialize(players, rounds){
 
         this.players = players || {};
 
         this.rounds = rounds || [];
-
 
     },
 
@@ -39,10 +37,10 @@ window.Impact = {
     ================================= */
 
 
-    analyzePlayer(player) {
+    analyzePlayer(player){
 
 
-        if(!player) {
+        if(!player){
 
             return null;
 
@@ -51,12 +49,11 @@ window.Impact = {
 
 
         const rounds =
-
             player.rounds || [];
 
 
 
-        if(rounds.length === 0) {
+        if(rounds.length === 0){
 
             return null;
 
@@ -65,7 +62,6 @@ window.Impact = {
 
 
         const latest =
-
             rounds[
                 rounds.length - 1
             ];
@@ -73,7 +69,6 @@ window.Impact = {
 
 
         const currentHandicap =
-
             WHS.calculateHandicapIndex(
                 rounds
             );
@@ -81,7 +76,6 @@ window.Impact = {
 
 
         const previousRounds =
-
             rounds.slice(
                 0,
                 -1
@@ -90,7 +84,6 @@ window.Impact = {
 
 
         const previousHandicap =
-
             WHS.calculateHandicapIndex(
                 previousRounds
             );
@@ -98,7 +91,6 @@ window.Impact = {
 
 
         const removed =
-
             this.findRemovedRound(
                 previousRounds,
                 rounds
@@ -106,23 +98,23 @@ window.Impact = {
 
 
 
-        let result = "No Change";
+        let result =
+            "No Change";
+
+
 
         let reason =
-
             "Latest round did not replace a counting round. Your Best 8 of 20 remained unchanged.";
 
 
 
         if(
             currentHandicap < previousHandicap
-        ) {
+        ){
 
 
             result =
-
                 "Improved by " +
-
                 (
                     previousHandicap -
                     currentHandicap
@@ -132,7 +124,6 @@ window.Impact = {
 
 
             reason =
-
                 removed
 
                 ?
@@ -144,22 +135,17 @@ window.Impact = {
                 "Latest round improved your counting scores.";
 
 
+
         }
 
 
-
         else if(
-
-            currentHandicap >
-            previousHandicap
-
-        ) {
+            currentHandicap > previousHandicap
+        ){
 
 
             result =
-
                 "Increased by " +
-
                 (
                     currentHandicap -
                     previousHandicap
@@ -169,19 +155,18 @@ window.Impact = {
 
 
             reason =
-
                 removed
 
                 ?
 
-                "A previous strong counting round was replaced by a higher differential."
+                "A previous counting round was replaced by a higher differential."
 
                 :
 
                 "Counting round averages increased.";
 
-        }
 
+        }
 
 
 
@@ -189,22 +174,15 @@ window.Impact = {
 
 
             player:
-
                 player.name,
 
 
-            previousHandicap:
+            previousHandicap,
 
-                previousHandicap,
-
-
-            currentHandicap:
-
-                currentHandicap,
+            currentHandicap,
 
 
             change:
-
                 currentHandicap -
                 previousHandicap,
 
@@ -221,7 +199,6 @@ window.Impact = {
             reason
 
 
-
         };
 
 
@@ -236,16 +213,13 @@ window.Impact = {
     ================================= */
 
 
-    findRemovedRound(
-        before,
-        after
-    ) {
+    findRemovedRound(before, after){
 
 
         if(
             !before ||
             !after
-        ) {
+        ){
 
             return null;
 
@@ -253,51 +227,54 @@ window.Impact = {
 
 
 
-        const beforeDates =
-
-            before.map(
-                r =>
-                r.date
-            );
-
-
-
-        const afterDates =
+        const afterKeys =
 
             after.map(
-                r =>
-                r.date
+                round =>
+                this.roundKey(round)
             );
 
 
 
         const removed =
 
-            beforeDates.filter(
+            before.find(
 
-                date =>
-                !afterDates.includes(date)
+                round =>
+
+                !afterKeys.includes(
+
+                    this.roundKey(round)
+
+                )
 
             );
 
 
 
-        if(
-            removed.length === 0
-        ) {
+        return removed || null;
 
-            return null;
 
-        }
+    },
 
 
 
-        return before.find(
 
-            round =>
-            round.date === removed[0]
 
-        );
+    roundKey(round){
+
+
+        return [
+
+            round.player,
+
+            round.date,
+
+            round.score,
+
+            round.differential
+
+        ].join("|");
 
 
     },
@@ -311,7 +288,7 @@ window.Impact = {
     ================================= */
 
 
-    render(players) {
+    render(players){
 
 
         const container =
@@ -322,7 +299,7 @@ window.Impact = {
 
 
 
-        if(!container) {
+        if(!container){
 
             console.warn(
                 "Impact results container missing."
@@ -345,7 +322,6 @@ window.Impact = {
         </h2>
 
 
-
         `;
 
 
@@ -353,6 +329,7 @@ window.Impact = {
         Object.values(players)
 
         .forEach(player => {
+
 
 
             const impact =
@@ -363,11 +340,12 @@ window.Impact = {
 
 
 
-            if(!impact) {
+            if(!impact){
 
                 return;
 
             }
+
 
 
 
@@ -385,78 +363,166 @@ window.Impact = {
 
             <p>
 
-                Previous Handicap:
+            Previous Handicap:
 
-                <strong>
+            <strong>
 
-                ${impact.previousHandicap
-                    ?
-                    impact.previousHandicap.toFixed(1)
-                    :
-                    "--"}
+            ${
+                impact.previousHandicap !== null
 
-                </strong>
+                ?
 
-            </p>
+                impact.previousHandicap.toFixed(1)
 
+                :
 
+                "--"
 
-            <p>
+            }
 
-                Current Handicap:
-
-                <strong>
-
-                ${impact.currentHandicap.toFixed(1)}
-
-                </strong>
+            </strong>
 
             </p>
 
 
 
+
             <p>
 
-                Result:
+            Current Handicap:
 
-                <strong>
+            <strong>
 
-                ${impact.result}
+            ${
+                impact.currentHandicap.toFixed(1)
 
-                </strong>
+            }
+
+            </strong>
 
             </p>
 
 
 
+
+
             <p>
 
-                Reason:
+            Result:
+
+            <strong>
+
+            ${impact.result}
+
+            </strong>
+
+            </p>
+
+
+
+
+
+            <p>
+
+            Reason:
+
+            <br>
+
+            ${impact.reason}
+
+            </p>
+
+
+
+
+            <p>
+
+            Latest Round:
+
+            <br>
+
+            Date:
+            ${impact.latest.date}
+
+            <br>
+
+            Score:
+            ${impact.latest.score}
+
+            <br>
+
+            Differential:
+            ${
+                impact.latest.differential
+
+                ?
+
+                impact.latest.differential.toFixed(1)
+
+                :
+
+                "--"
+
+            }
+
+            </p>
+
+
+
+            ${
+                impact.removed
+
+                ?
+
+                `
+
+                <p>
+
+                <strong>
+                Replacement Details:
+                </strong>
+
+                <br><br>
+
+
+                Removed Round:
 
                 <br>
 
-                ${impact.reason}
-
-            </p>
-
-
-
-            <p>
-
-                Latest Round:
+                Date:
+                ${impact.removed.date}
 
                 <br>
 
                 Score:
-                ${impact.latest.score}
+                ${impact.removed.score}
 
                 <br>
 
                 Differential:
-                ${impact.latest.differential?.toFixed(1)
-                    || "--"}
+                ${
+                    impact.removed.differential
 
-            </p>
+                    ?
+
+                    impact.removed.differential.toFixed(1)
+
+                    :
+
+                    "--"
+
+                }
+
+
+                </p>
+
+                `
+
+                :
+
+                ""
+
+            }
 
 
 
@@ -476,11 +542,11 @@ window.Impact = {
 
 
 
-        container.innerHTML = html;
+        container.innerHTML =
+            html;
 
 
     }
-
 
 
 };
