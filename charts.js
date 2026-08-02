@@ -1,7 +1,7 @@
 /* ==========================================
    Golf Tracker v3
    Interactive Handicap Trend Charts
-   Deliverable 36
+   Deliverable 37
    ========================================== */
 
 "use strict";
@@ -17,7 +17,6 @@ window.Charts = {
     currentPlayer:null,
 
 
-
     initialize(){
 
 
@@ -25,7 +24,6 @@ window.Charts = {
             document.getElementById(
                 "handicapChart"
             );
-
 
 
         if(!this.canvas){
@@ -39,19 +37,16 @@ window.Charts = {
         }
 
 
-
         this.context =
             this.canvas.getContext(
                 "2d"
             );
 
 
-
         const selector =
             document.getElementById(
                 "chartPlayer"
             );
-
 
 
         if(selector){
@@ -61,11 +56,9 @@ window.Charts = {
                 "change",
                 ()=>{
 
-
                     this.renderPlayer(
                         selector.value
                     );
-
 
                 }
             );
@@ -75,21 +68,15 @@ window.Charts = {
 
 
 
-        /*
-            Load default player
-        */
-
         if(
             typeof GolfTracker !== "undefined" &&
             GolfTracker.players
         ){
 
-
             const firstPlayer =
                 Object.keys(
                     GolfTracker.players
                 )[0];
-
 
 
             if(firstPlayer){
@@ -108,7 +95,6 @@ window.Charts = {
 
 
 
-
     renderPlayer(playerName){
 
 
@@ -121,21 +107,17 @@ window.Charts = {
         }
 
 
-
         const player =
             GolfTracker.players[playerName];
-
 
 
         this.currentPlayer =
             player;
 
 
-
         this.updateStats(
             player
         );
-
 
 
         this.render(
@@ -144,7 +126,6 @@ window.Charts = {
 
 
     },
-
 
 
 
@@ -158,7 +139,6 @@ window.Charts = {
             );
 
 
-
         if(!container){
 
             return;
@@ -166,12 +146,10 @@ window.Charts = {
         }
 
 
-
         const stats =
             this.getStatistics(
                 player
             );
-
 
 
         if(!stats){
@@ -233,7 +211,6 @@ window.Charts = {
 
 
 
-
     getStatistics(player){
 
 
@@ -243,7 +220,6 @@ window.Charts = {
             );
 
 
-
         if(!history.length){
 
             return null;
@@ -251,12 +227,10 @@ window.Charts = {
         }
 
 
-
         const values =
             history.map(
                 x=>x.value
             );
-
 
 
         return {
@@ -298,7 +272,6 @@ window.Charts = {
 
 
 
-
     calculateHistory(player){
 
 
@@ -306,9 +279,7 @@ window.Charts = {
             player.rounds || [];
 
 
-
         const history=[];
-
 
 
         for(
@@ -325,12 +296,10 @@ window.Charts = {
                 );
 
 
-
             const handicap =
                 WHS.calculateHandicapIndex(
                     current
                 );
-
 
 
             if(
@@ -343,7 +312,6 @@ window.Charts = {
 
                     date:
                         rounds[i].date,
-
 
                     value:
                         Number(
@@ -359,14 +327,15 @@ window.Charts = {
         }
 
 
-
         return history;
 
 
     },
 
 
-
+/* ==========================================
+   Chart Rendering Engine
+========================================== */
 
 
     render(player){
@@ -388,7 +357,6 @@ window.Charts = {
             this.calculateHistory(
                 player
             );
-
 
 
         this.clear();
@@ -437,21 +405,37 @@ window.Charts = {
 
     drawChart(history,player){
 
+
         const ctx =
             this.context;
 
 
-        const padding = 60;
+
+        const padding = {
+
+            top:70,
+
+            right:40,
+
+            bottom:70,
+
+            left:70
+
+        };
+
 
 
         const width =
             this.canvas.width -
-            padding * 2;
+            padding.left -
+            padding.right;
+
 
 
         const height =
             this.canvas.height -
-            padding * 2;
+            padding.top -
+            padding.bottom;
 
 
 
@@ -463,27 +447,57 @@ window.Charts = {
 
 
         const max =
-            Math.max(
-                ...values,
-                player.targetHandicap
+            Math.ceil(
+                Math.max(
+                    ...values,
+                    player.targetHandicap
+                )
             ) + 1;
 
 
 
         const min =
-            Math.min(
-                ...values,
-                player.targetHandicap
+            Math.floor(
+                Math.min(
+                    ...values,
+                    player.targetHandicap
+                )
             ) - 1;
 
 
 
-        this.drawTargetLine(
-            player,
+        this.drawTitle(
+            player
+        );
+
+
+
+        this.drawGrid(
+
             min,
+
             max,
+
             padding,
+
             height
+
+        );
+
+
+
+        this.drawTargetLine(
+
+            player,
+
+            min,
+
+            max,
+
+            padding,
+
+            height
+
         );
 
 
@@ -493,65 +507,297 @@ window.Charts = {
 
 
         history.forEach(
+
             (item,index)=>{
 
 
-                const x =
-                    padding +
-                    (
-                        index /
-                        (
-                            history.length-1
-                        )
-                    )
-                    *
-                    width;
+                const point =
+                    this.getPoint(
 
+                        item.value,
 
+                        index,
 
-                const y =
-                    padding +
-                    (
-                        (
-                            max -
-                            item.value
-                        )
-                        /
-                        (
-                            max -
-                            min
-                        )
-                    )
-                    *
-                    height;
+                        history.length,
+
+                        min,
+
+                        max,
+
+                        padding,
+
+                        width,
+
+                        height
+
+                    );
 
 
 
                 if(index===0){
 
                     ctx.moveTo(
-                        x,
-                        y
+                        point.x,
+                        point.y
                     );
 
                 }
                 else{
 
                     ctx.lineTo(
-                        x,
-                        y
+                        point.x,
+                        point.y
                     );
 
                 }
 
 
             }
+
         );
 
 
 
         ctx.stroke();
 
+
+
+        this.drawPoints(
+
+            history,
+
+            min,
+
+            max,
+
+            padding,
+
+            width,
+
+            height
+
+        );
+
+
+
+        this.drawAxesLabels(
+
+            history,
+
+            min,
+
+            max,
+
+            padding,
+
+            width,
+
+            height
+
+        );
+
+
+    },
+
+
+
+
+
+    getPoint(
+
+        value,
+
+        index,
+
+        length,
+
+        min,
+
+        max,
+
+        padding,
+
+        width,
+
+        height
+
+    ){
+
+
+        return {
+
+
+            x:
+
+                padding.left +
+
+                (
+                    index /
+                    (
+                        length-1
+                    )
+                )
+
+                *
+
+                width,
+
+
+
+            y:
+
+                padding.top +
+
+                (
+
+                    (
+                        max -
+                        value
+                    )
+
+                    /
+
+                    (
+                        max -
+                        min
+                    )
+
+                )
+
+                *
+
+                height
+
+
+        };
+
+
+    },
+
+
+
+
+
+    drawTitle(player){
+
+
+        const ctx =
+            this.context;
+
+
+        ctx.font =
+            "22px Arial";
+
+
+        ctx.fillText(
+
+            player.name +
+            " Handicap Trend",
+
+            70,
+
+            35
+
+        );
+
+
+    },
+
+
+
+
+
+    drawGrid(
+
+        min,
+
+        max,
+
+        padding,
+
+        height
+
+    ){
+
+
+        const ctx =
+            this.context;
+
+
+
+        ctx.font =
+            "12px Arial";
+
+
+
+        for(
+            let value=min;
+            value<=max;
+            value++
+        ){
+
+
+            const y =
+
+                padding.top +
+
+                (
+
+                    (
+                        max-value
+                    )
+
+                    /
+
+                    (
+                        max-min
+                    )
+
+                )
+
+                *
+
+                height;
+
+
+
+            ctx.beginPath();
+
+
+            ctx.moveTo(
+
+                padding.left,
+
+                y
+
+            );
+
+
+            ctx.lineTo(
+
+                this.canvas.width-padding.right,
+
+                y
+
+            );
+
+
+            ctx.stroke();
+
+
+
+            ctx.fillText(
+
+                value.toFixed(0),
+
+                25,
+
+                y+4
+
+            );
+
+
+        }
 
 
     },
@@ -561,11 +807,17 @@ window.Charts = {
 
 
     drawTargetLine(
+
         player,
+
         min,
+
         max,
+
         padding,
+
         height
+
     ){
 
 
@@ -580,19 +832,27 @@ window.Charts = {
 
 
         const y =
-            padding +
+
+            padding.top +
+
             (
+
                 (
                     max -
                     player.targetHandicap
                 )
+
                 /
+
                 (
                     max -
                     min
                 )
+
             )
+
             *
+
             height;
 
 
@@ -605,22 +865,198 @@ window.Charts = {
         ctx.beginPath();
 
 
+
         ctx.moveTo(
-            padding,
+
+            padding.left,
+
             y
+
         );
+
 
 
         ctx.lineTo(
-            this.canvas.width-padding,
+
+            this.canvas.width-padding.right,
+
             y
+
         );
+
 
 
         ctx.stroke();
 
 
+
+        ctx.fillText(
+
+            "Target " +
+            player.targetHandicap.toFixed(1),
+
+            this.canvas.width-130,
+
+            y-5
+
+        );
+
+
+    },
+
+
+
+
+
+    drawPoints(
+
+        history,
+
+        min,
+
+        max,
+
+        padding,
+
+        width,
+
+        height
+
+    ){
+
+
+        const ctx =
+            this.context;
+
+
+
+        history.forEach(
+
+            (item,index)=>{
+
+
+                const point =
+                    this.getPoint(
+
+                        item.value,
+
+                        index,
+
+                        history.length,
+
+                        min,
+
+                        max,
+
+                        padding,
+
+                        width,
+
+                        height
+
+                    );
+
+
+
+                ctx.beginPath();
+
+
+
+                ctx.arc(
+
+                    point.x,
+
+                    point.y,
+
+                    4,
+
+                    0,
+
+                    Math.PI*2
+
+                );
+
+
+
+                ctx.fill();
+
+
+
+            }
+
+        );
+
+
+    },
+
+
+
+
+
+    drawAxesLabels(
+
+        history,
+
+        min,
+
+        max,
+
+        padding,
+
+        width,
+
+        height
+
+    ){
+
+
+        const ctx =
+            this.context;
+
+
+
+        ctx.font =
+            "11px Arial";
+
+
+
+        const first =
+            history[0].date;
+
+
+
+        const last =
+            history[
+                history.length-1
+            ].date;
+
+
+
+        ctx.fillText(
+
+            first,
+
+            padding.left,
+
+            this.canvas.height-25
+
+        );
+
+
+
+        ctx.fillText(
+
+            last,
+
+            this.canvas.width-100,
+
+            this.canvas.height-25
+
+        );
+
+
     }
+
 
 
 };
