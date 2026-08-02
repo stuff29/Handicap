@@ -1,7 +1,7 @@
 /* ==========================================
    Golf Tracker v3
    Round Impact Analyzer
-   Deliverable 34
+   Deliverable 34B
    ========================================== */
 
 "use strict";
@@ -19,7 +19,6 @@ window.Impact = {
        Initialize
     ================================= */
 
-
     initialize(players, rounds){
 
         this.players = players || {};
@@ -36,7 +35,6 @@ window.Impact = {
        Analyze Player
     ================================= */
 
-
     analyzePlayer(player){
 
 
@@ -45,7 +43,6 @@ window.Impact = {
             return null;
 
         }
-
 
 
         const rounds =
@@ -91,6 +88,7 @@ window.Impact = {
 
 
         const removed =
+
             this.findRemovedRound(
                 previousRounds,
                 rounds
@@ -104,7 +102,8 @@ window.Impact = {
 
 
         let reason =
-            "Latest round did not replace a counting round. Your Best 8 of 20 remained unchanged.";
+
+            "Latest round did not change your Best 8 of 20.";
 
 
 
@@ -114,7 +113,9 @@ window.Impact = {
 
 
             result =
+
                 "Improved by " +
+
                 (
                     previousHandicap -
                     currentHandicap
@@ -123,20 +124,29 @@ window.Impact = {
 
 
 
-            reason =
-                removed
+            if(removed){
 
-                ?
 
-                "Latest round replaced a higher differential."
+                reason =
 
-                :
+                "Latest round replaced a higher differential in your Best 8 of 20.";
+
+
+            }
+
+            else{
+
+
+                reason =
 
                 "Latest round improved your counting scores.";
 
 
+            }
+
 
         }
+
 
 
         else if(
@@ -145,7 +155,9 @@ window.Impact = {
 
 
             result =
+
                 "Increased by " +
+
                 (
                     currentHandicap -
                     previousHandicap
@@ -154,16 +166,25 @@ window.Impact = {
 
 
 
-            reason =
-                removed
+            if(removed){
 
-                ?
 
-                "A previous counting round was replaced by a higher differential."
+                reason =
 
-                :
+                "Latest round replaced a lower differential in your Best 8 of 20.";
+
+
+            }
+
+            else{
+
+
+                reason =
 
                 "Counting round averages increased.";
+
+
+            }
 
 
         }
@@ -178,6 +199,7 @@ window.Impact = {
 
 
             previousHandicap,
+
 
             currentHandicap,
 
@@ -209,36 +231,45 @@ window.Impact = {
 
 
     /* ================================
-       Find Removed Round
+       Find Removed Counting Round
     ================================= */
 
 
     findRemovedRound(before, after){
 
 
-        if(
-            !before ||
-            !after
-        ){
 
-            return null;
+        const beforeCounting =
 
-        }
+            this.getCountingRounds(
+                before
+            );
+
+
+
+        const afterCounting =
+
+            this.getCountingRounds(
+                after
+            );
 
 
 
         const afterKeys =
 
-            after.map(
+            afterCounting.map(
+
                 round =>
+
                 this.roundKey(round)
+
             );
 
 
 
-        const removed =
+        return (
 
-            before.find(
+            beforeCounting.find(
 
                 round =>
 
@@ -248,17 +279,56 @@ window.Impact = {
 
                 )
 
-            );
+            )
 
+            ||
 
+            null
 
-        return removed || null;
+        );
 
 
     },
 
 
 
+
+
+    /* ================================
+       Counting Round Helper
+    ================================= */
+
+
+    getCountingRounds(rounds){
+
+
+        if(
+            !rounds ||
+            rounds.length === 0
+        ){
+
+            return [];
+
+        }
+
+
+
+        return WHS.identifyCountingRounds(
+
+            [...rounds]
+
+        );
+
+
+    },
+
+
+
+
+
+    /* ================================
+       Unique Round Identifier
+    ================================= */
 
 
     roundKey(round){
@@ -313,14 +383,11 @@ window.Impact = {
 
         let html = `
 
-
         <div class="card">
 
-
         <h2>
-            Latest Round Impact
+        Latest Round Impact
         </h2>
-
 
         `;
 
@@ -348,7 +415,6 @@ window.Impact = {
 
 
 
-
             html += `
 
 
@@ -356,13 +422,12 @@ window.Impact = {
 
 
             <h3>
-                ${player.name}
+            ${player.name}
             </h3>
 
 
 
             <p>
-
             Previous Handicap:
 
             <strong>
@@ -386,17 +451,12 @@ window.Impact = {
 
 
 
-
             <p>
-
             Current Handicap:
 
             <strong>
 
-            ${
-                impact.currentHandicap.toFixed(1)
-
-            }
+            ${impact.currentHandicap.toFixed(1)}
 
             </strong>
 
@@ -404,10 +464,7 @@ window.Impact = {
 
 
 
-
-
             <p>
-
             Result:
 
             <strong>
@@ -420,10 +477,7 @@ window.Impact = {
 
 
 
-
-
             <p>
-
             Reason:
 
             <br>
@@ -452,6 +506,7 @@ window.Impact = {
             <br>
 
             Differential:
+
             ${
                 impact.latest.differential
 
@@ -479,15 +534,10 @@ window.Impact = {
                 <p>
 
                 <strong>
-                Replacement Details:
+                Replaced Round:
                 </strong>
 
                 <br><br>
-
-
-                Removed Round:
-
-                <br>
 
                 Date:
                 ${impact.removed.date}
@@ -500,6 +550,7 @@ window.Impact = {
                 <br>
 
                 Differential:
+
                 ${
                     impact.removed.differential
 
@@ -513,7 +564,6 @@ window.Impact = {
 
                 }
 
-
                 </p>
 
                 `
@@ -523,7 +573,6 @@ window.Impact = {
                 ""
 
             }
-
 
 
             `;
