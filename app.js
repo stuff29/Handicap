@@ -162,27 +162,20 @@ if(typeof Impact !== "undefined"){
     ================================= */
 
 
-    initializeModules() {
+initializeModules() {
 
+    Solver.initialize(
+        this.players,
+        this.rounds
+    );
 
-        Solver.initialize(
+    TimeMachine.initialize(
+        this.rounds
+    );
 
-            this.players,
+    Charts.initialize();
 
-            this.rounds
-
-        );
-
-
-
-        TimeMachine.initialize(
-
-            this.rounds
-
-        );
-
-
-    },
+},
 
 
 
