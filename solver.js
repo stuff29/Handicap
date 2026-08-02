@@ -1,7 +1,6 @@
 /* ==========================================
    Golf Tracker v3
-   Handicap Target Solver
-   5 Round Average Projection
+   WHS 5 Round Handicap Projection Solver
    ========================================== */
 
 "use strict";
@@ -29,7 +28,7 @@ window.Solver = {
 
 
         this.rounds =
-            rounds || {};
+            rounds || [];
 
 
         this.attachEvents();
@@ -98,186 +97,7 @@ window.Solver = {
 
 
     /* ================================
-       Dashboard Goals
-    ================================= */
-
-
-    renderGoals(){
-
-
-        const container =
-            document.getElementById(
-                "solverResults"
-            );
-
-
-        if(!container){
-
-            return;
-
-        }
-
-
-
-        container.innerHTML = `
-
-            <div class="card">
-
-                <h2>
-                    Handicap Goal Solver
-                </h2>
-
-
-                ${this.buildGoalCard(
-                    "Mike",
-                    10
-                )}
-
-
-                ${this.buildGoalCard(
-                    "Johnny",
-                    15
-                )}
-
-            </div>
-
-        `;
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Build Goal Card
-    ================================= */
-
-
-    buildGoalCard(
-        playerName,
-        target
-    ){
-
-
-        const player =
-            this.players[playerName];
-
-
-
-        if(!player){
-
-            return "";
-
-        }
-
-
-
-        const result =
-            this.calculateProjection(
-                player,
-                target
-            );
-
-
-
-        if(!result){
-
-            return `
-
-            <hr>
-
-            <h3>
-                ${playerName}
-            </h3>
-
-            <p>
-                Not enough rounds available.
-            </p>
-
-            `;
-
-        }
-
-
-
-        return `
-
-
-        <hr>
-
-
-        <h3>
-            ${playerName}
-        </h3>
-
-
-
-        <p>
-            Current Handicap:
-            <strong>
-            ${result.current.toFixed(1)}
-            </strong>
-        </p>
-
-
-
-        <p>
-            Target Handicap:
-            <strong>
-            ${target.toFixed(1)}
-            </strong>
-        </p>
-
-
-
-        <p>
-            Required Average Differential
-            (next 5 rounds):
-            <br>
-
-            <strong>
-            ${result.requiredDifferential.toFixed(1)}
-            </strong>
-
-        </p>
-
-
-
-        <p>
-            Approximate Average Score:
-            <br>
-
-            <strong style="font-size:1.5em">
-
-            ${result.averageScore}
-
-            </strong>
-
-        </p>
-
-
-
-        <p>
-            <small>
-            Actual handicap movement depends on
-            which existing counting rounds are replaced.
-            </small>
-        </p>
-
-
-        `;
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Single Player Solver
+       Render Player Result
     ================================= */
 
 
@@ -303,6 +123,7 @@ window.Solver = {
 
         container.innerHTML = `
 
+
         <div class="card">
 
         ${this.buildGoalCard(
@@ -311,6 +132,7 @@ window.Solver = {
         )}
 
         </div>
+
 
         `;
 
@@ -322,7 +144,202 @@ window.Solver = {
 
 
     /* ================================
-       Projection Calculation
+       Dashboard Goals
+    ================================= */
+
+
+    renderGoals(){
+
+
+        const container =
+            document.getElementById(
+                "solverResults"
+            );
+
+
+        if(!container){
+
+            return;
+
+        }
+
+
+
+        container.innerHTML = `
+
+
+        <div class="card">
+
+
+        <h2>
+            Handicap Goal Solver
+        </h2>
+
+
+        ${this.buildGoalCard(
+            "Mike",
+            10
+        )}
+
+
+        ${this.buildGoalCard(
+            "Johnny",
+            15
+        )}
+
+
+        </div>
+
+
+        `;
+
+
+    },
+
+
+
+
+
+    /* ================================
+       Build Result Card
+    ================================= */
+
+
+    buildGoalCard(
+        playerName,
+        target
+    ){
+
+
+        const player =
+            this.players[playerName];
+
+
+
+        if(!player){
+
+            return "";
+
+        }
+
+
+
+        const projection =
+            this.calculateProjection(
+                player,
+                target
+            );
+
+
+
+        if(!projection){
+
+            return `
+
+            <h3>
+            ${playerName}
+            </h3>
+
+            <p>
+            Not enough rounds available.
+            </p>
+
+            `;
+
+        }
+
+
+
+        return `
+
+
+        <hr>
+
+
+        <h3>
+            ${playerName}
+        </h3>
+
+
+
+        <p>
+        Current Handicap:
+
+        <strong>
+        ${projection.current.toFixed(1)}
+        </strong>
+
+        </p>
+
+
+
+        <p>
+        Target Handicap:
+
+        <strong>
+        ${target.toFixed(1)}
+        </strong>
+
+        </p>
+
+
+
+        <p>
+        Required Average Differential
+        Over Next 5 Rounds:
+
+        <br>
+
+        <strong style="font-size:1.4em">
+
+        ${projection.requiredDifferential.toFixed(1)}
+
+        </strong>
+
+        </p>
+
+
+
+        <p>
+        Estimated Average Score:
+
+        <br>
+
+        <strong style="font-size:1.5em">
+
+        ${projection.averageScore}
+
+        </strong>
+
+        </p>
+
+
+
+        <p>
+
+        <small>
+
+        Projection assumes your next 5 rounds
+        replace some existing counting scores.
+        Actual WHS movement depends on which
+        rounds drop out of your Best 8.
+
+        </small>
+
+        </p>
+
+
+        `;
+
+
+    },
+
+
+
+
+
+    /* ================================
+       WHS Projection Engine
     ================================= */
 
 
@@ -353,95 +370,89 @@ window.Solver = {
 
 
         if(
-            current === null ||
             current <= target
         ){
+
 
             return {
 
                 current,
 
                 requiredDifferential:
-                    target,
+                    0,
 
                 averageScore:
-                    "--"
+                    "Already achieved"
 
             };
+
 
         }
 
 
 
         /*
-          Estimate required differential.
-
-          WHS handicap is based on best
-          8 of 20, so we use the current
-          counting differential average and
-          project the improvement required.
+          Binary search for average
+          differential needed over 5 rounds
         */
 
 
-        const differentials =
-            rounds
+        let low = 0;
 
-            .map(
-                round =>
-                WHS.calculateDifferential(
-                    round
-                )
-            )
+        let high = 40;
 
-            .filter(
-                x =>
-                Number.isFinite(x)
-            );
+        let answer = high;
 
 
 
-        differentials.sort(
-            (a,b)=>a-b
-        );
+        for(
+            let i=0;
+            i<40;
+            i++
+        ){
+
+
+            const mid =
+                (
+                    low +
+                    high
+                ) / 2;
 
 
 
-        const counting =
-            differentials.slice(
-                0,
-                Math.min(
-                    8,
-                    differentials.length
-                )
-            );
+            const simulated =
+                this.simulateFutureRounds(
+                    rounds,
+                    mid
+                );
 
 
 
-        const currentAverage =
-            this.average(
-                counting
-            );
+            const handicap =
+                WHS.calculateHandicapIndex(
+                    simulated
+                );
 
 
 
-        const requiredDifferential =
-            Math.max(
+            if(
+                handicap <= target
+            ){
 
-                target,
+                answer = mid;
 
-                Number(
-                    (
-                    currentAverage -
-                    (
-                        current -
-                        target
-                    )
-                    )
+                high = mid;
 
-                    .toFixed(1)
-                )
+            }
 
-            );
+            else{
+
+                low = mid;
+
+            }
+
+
+        }
 
 
 
@@ -451,19 +462,88 @@ window.Solver = {
             current,
 
 
-            requiredDifferential,
+            requiredDifferential:
+                answer,
 
 
 
             averageScore:
 
                 this.convertDifferentialToScore(
-                    requiredDifferential,
+                    answer,
                     rounds
                 )
 
 
         };
+
+
+    },
+
+
+
+
+
+    /* ================================
+       Simulate Five Future Rounds
+    ================================= */
+
+
+    simulateFutureRounds(
+        rounds,
+        differential
+    ){
+
+
+        const simulated =
+            rounds.map(
+                r => ({...r})
+            );
+
+
+
+        const template =
+            rounds[
+                rounds.length-1
+            ];
+
+
+
+        for(
+            let i=0;
+            i<5;
+            i++
+        ){
+
+
+            simulated.push({
+
+
+                ...template,
+
+
+                date:
+                "Future",
+
+
+                score:
+                this.convertDifferentialToScore(
+                    differential,
+                    rounds
+                ),
+
+
+                differential
+
+
+            });
+
+
+        }
+
+
+
+        return simulated;
 
 
     },
@@ -485,7 +565,7 @@ window.Solver = {
 
         const latest =
             rounds[
-                rounds.length - 1
+                rounds.length-1
             ];
 
 
@@ -500,11 +580,12 @@ window.Solver = {
 
         return Math.round(
 
-            differential *
-
             (
-                latest.slope /
-                113
+                differential *
+                (
+                    113 /
+                    latest.slope
+                )
             )
 
             +
@@ -518,54 +599,6 @@ window.Solver = {
 
 
 
-
-
-    /* ================================
-       Average
-    ================================= */
-
-
-    average(values){
-
-
-        if(
-            !values ||
-            values.length === 0
-        ){
-
-            return 0;
-
-        }
-
-
-
-        return (
-
-            values.reduce(
-                (
-                    total,
-                    value
-                ) =>
-                total + value,
-                0
-            )
-
-            /
-
-            values.length
-
-        );
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Backwards Compatibility
-    ================================= */
 
 
     solve(
