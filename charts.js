@@ -1,7 +1,7 @@
 /* ==========================================
    Golf Tracker v3
    Interactive Handicap Trend Charts
-   Deliverable 31
+   Deliverable 32
    ========================================== */
 
 "use strict";
@@ -17,9 +17,7 @@ window.Charts = {
     currentPlayer:null,
 
 
-
     initialize(){
-
 
         this.canvas =
             document.getElementById(
@@ -44,41 +42,11 @@ window.Charts = {
             );
 
 
-
-        const selector =
-            document.getElementById(
-                "chartPlayer"
-            );
-
-
-        if(selector){
-
-
-            selector.addEventListener(
-                "change",
-                ()=>{
-
-
-                    this.renderPlayer(
-                        selector.value
-                    );
-
-
-                }
-            );
-
-
-        }
-
-
     },
 
 
 
-
-
     renderPlayer(playerName){
-
 
         if(
             !GolfTracker.players[playerName]
@@ -97,25 +65,16 @@ window.Charts = {
             player;
 
 
-
-        this.updateStats(
-            player
-        );
+        this.updateStats(player);
 
 
-        this.render(
-            player
-        );
-
+        this.render(player);
 
     },
 
 
 
-
-
     updateStats(player){
-
 
         const container =
             document.getElementById(
@@ -130,18 +89,14 @@ window.Charts = {
         }
 
 
-
         const stats =
-            this.getStatistics(
-                player
-            );
-
+            this.getStatistics(player);
 
 
         if(!stats){
 
             container.innerHTML =
-            "No chart data available.";
+                "No chart data available.";
 
             return;
 
@@ -151,31 +106,26 @@ window.Charts = {
 
         container.innerHTML = `
 
-
         <p>
         <strong>Current Handicap:</strong>
         ${stats.current.toFixed(1)}
         </p>
-
 
         <p>
         <strong>Target Handicap:</strong>
         ${player.targetHandicap?.toFixed(1) ?? "--"}
         </p>
 
-
         <p>
         <strong>Season Low:</strong>
         ${stats.low.toFixed(1)}
         </p>
-
 
         <p>
         <strong>Season Improvement:</strong>
         ${stats.improvement.toFixed(1)}
         strokes
         </p>
-
 
         `;
 
@@ -184,15 +134,10 @@ window.Charts = {
 
 
 
-
-
     getStatistics(player){
 
-
         const history =
-            this.calculateHistory(
-                player
-            );
+            this.calculateHistory(player);
 
 
         if(!history.length){
@@ -202,32 +147,26 @@ window.Charts = {
         }
 
 
-
         const values =
             history.map(
                 x=>x.value
             );
 
 
-
         return {
-
 
             current:
                 values[
                     values.length-1
                 ],
 
-
             starting:
                 values[0],
-
 
             low:
                 Math.min(
                     ...values
                 ),
-
 
             improvement:
                 Number(
@@ -242,15 +181,11 @@ window.Charts = {
 
         };
 
-
     },
 
 
 
-
-
     calculateHistory(player){
-
 
         const rounds =
             player.rounds || [];
@@ -259,13 +194,11 @@ window.Charts = {
         const history=[];
 
 
-
         for(
             let i=0;
             i<rounds.length;
             i++
         ){
-
 
             const current =
                 rounds.slice(
@@ -274,12 +207,10 @@ window.Charts = {
                 );
 
 
-
             const handicap =
                 WHS.calculateHandicapIndex(
                     current
                 );
-
 
 
             if(
@@ -287,12 +218,10 @@ window.Charts = {
                 Number.isFinite(handicap)
             ){
 
-
                 history.push({
 
                     date:
                     rounds[i].date,
-
 
                     value:
                     Number(
@@ -301,25 +230,18 @@ window.Charts = {
 
                 });
 
-
             }
-
 
         }
 
 
-
         return history;
-
 
     },
 
 
 
-
-
     render(player){
-
 
         if(
             !this.canvas ||
@@ -332,24 +254,20 @@ window.Charts = {
         }
 
 
-
         const history =
             this.calculateHistory(
                 player
             );
 
 
-
         this.clear();
 
 
-
-        if(history.length<2){
+        if(history.length < 2){
 
             return;
 
         }
-
 
 
         this.drawChart(
@@ -362,10 +280,7 @@ window.Charts = {
 
 
 
-
-
     clear(){
-
 
         this.context.clearRect(
 
@@ -377,31 +292,27 @@ window.Charts = {
 
         );
 
-
     },
-
-
 
 
 
     drawChart(history,player){
 
+        const ctx =
+            this.context;
 
-        const ctx=this.context;
 
-
-        const padding=50;
+        const padding = 60;
 
 
         const width =
             this.canvas.width -
-            padding*2;
+            padding * 2;
 
 
         const height =
             this.canvas.height -
-            padding*2;
-
+            padding * 2;
 
 
         const values =
@@ -410,13 +321,11 @@ window.Charts = {
             );
 
 
-
         const max =
             Math.max(
                 ...values,
                 player.targetHandicap
             ) + 1;
-
 
 
         const min =
@@ -479,29 +388,116 @@ window.Charts = {
                 if(index===0){
 
                     ctx.moveTo(
-                        x,y
+                        x,
+                        y
                     );
 
                 }
                 else{
 
                     ctx.lineTo(
-                        x,y
+                        x,
+                        y
                     );
 
                 }
 
 
             }
+
         );
 
 
         ctx.stroke();
 
 
+
+        // Draw points and values
+
+        history.forEach(
+            (item,index)=>{
+
+
+                const x =
+                    padding +
+                    (
+                        index /
+                        (
+                            history.length-1
+                        )
+                    )
+                    *
+                    width;
+
+
+
+                const y =
+                    padding +
+                    (
+                        (
+                            max -
+                            item.value
+                        )
+                        /
+                        (
+                            max -
+                            min
+                        )
+                    )
+                    *
+                    height;
+
+
+
+                ctx.beginPath();
+
+                ctx.arc(
+                    x,
+                    y,
+                    4,
+                    0,
+                    Math.PI*2
+                );
+
+                ctx.fill();
+
+
+
+                ctx.fillText(
+
+                    item.value.toFixed(1),
+
+                    x-10,
+
+                    y-10
+
+                );
+
+
+                if(
+                    index === 0 ||
+                    index === history.length-1
+                ){
+
+                    ctx.fillText(
+
+                        item.date,
+
+                        x-25,
+
+                        this.canvas.height-20
+
+                    );
+
+                }
+
+
+            }
+
+        );
+
+
     },
-
-
 
 
 
@@ -513,9 +509,8 @@ window.Charts = {
         height
     ){
 
-
         if(
-            !player.targetHandicap
+            player.targetHandicap === undefined
         ){
 
             return;
@@ -542,7 +537,9 @@ window.Charts = {
 
 
 
-        const ctx=this.context;
+        const ctx =
+            this.context;
+
 
 
         ctx.beginPath();
