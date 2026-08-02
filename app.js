@@ -46,6 +46,16 @@ window.GolfTracker = {
             this.initializeModules();
 
 
+if(typeof Impact !== "undefined"){
+
+    Impact.initialize(
+        this.players,
+        this.rounds
+    );
+
+}
+
+
 
             this.renderApplication();
 
