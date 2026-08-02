@@ -543,11 +543,16 @@ tr:hover {
 
 
 
-.counting {
-
+.counting.mike {
 
     background:#e8f7ec;
 
+}
+
+
+.counting.johnny {
+
+    background:#fff7cc;
 
 }
 
