@@ -1,6 +1,7 @@
 /* ==========================================
    Golf Tracker v3
-   Round History Module
+   Enhanced Round History Module
+   Deliverable 33
    ========================================== */
 
 "use strict";
@@ -13,56 +14,44 @@ window.History = {
 
 
 
-    /* ================================
-       Render History Table
-    ================================= */
-
-
-    render(rounds) {
+    render(rounds){
 
 
         const container =
-
             document.getElementById(
                 "historyTable"
             );
 
 
-
-        if(!container) {
+        if(!container){
 
             return;
 
         }
 
 
-
         if(
             !rounds ||
             rounds.length === 0
-        ) {
-
+        ){
 
             container.innerHTML = `
 
-                <div class="card">
+            <div class="card">
 
-                    No rounds loaded.
+            No rounds loaded.
 
-                </div>
+            </div>
 
             `;
 
-
             return;
-
 
         }
 
 
 
         const analyzed =
-
             this.analyzeRounds(
                 rounds
             );
@@ -70,7 +59,6 @@ window.History = {
 
 
         const sorted =
-
             Utils.sortByDateDescending(
                 analyzed
             );
@@ -78,7 +66,6 @@ window.History = {
 
 
         container.innerHTML =
-
             this.buildTable(
                 sorted
             );
@@ -90,46 +77,50 @@ window.History = {
 
 
 
-    /* ================================
-       Add WHS Data
-    ================================= */
+    analyzeRounds(rounds){
 
 
-    analyzeRounds(rounds) {
+        return rounds.map(
+            round => {
 
 
-        const result =
-
-            [];
-
-
-
-        rounds.forEach(round => {
-
-
-
-            result.push({
-
-
-                ...round,
-
-
-                differential:
-
+                const differential =
                     WHS.calculateDifferential(
                         round
-                    )
-
-
-            });
+                    );
 
 
 
-        });
+                return {
+
+
+                    ...round,
+
+
+                    differential,
+
+
+                    counting:
+                        this.isCountingRound(
+                            round,
+                            rounds
+                        ),
 
 
 
-        return result;
+                    impact:
+                        this.getImpact(
+                            round,
+                            rounds
+                        )
+
+
+                };
+
+
+            }
+
+        );
 
 
     },
@@ -138,12 +129,183 @@ window.History = {
 
 
 
-    /* ================================
-       Build HTML Table
-    ================================= */
+    isCountingRound(
+        round,
+        rounds
+    ){
 
 
-    buildTable(rounds) {
+        const playerRounds =
+
+            rounds.filter(
+
+                r =>
+                r.player === round.player
+
+            );
+
+
+
+        const differentials =
+
+            playerRounds
+
+            .map(
+
+                r => ({
+
+                    round:r,
+
+                    differential:
+                    WHS.calculateDifferential(r)
+
+                })
+
+            )
+
+            .filter(
+
+                x =>
+                x.differential !== null
+
+            )
+
+            .sort(
+
+                (a,b)=>
+
+                a.differential -
+                b.differential
+
+            );
+
+
+
+        const best =
+
+            differentials.slice(
+                0,
+                Math.min(
+                    8,
+                    differentials.length
+                )
+            );
+
+
+
+        return best.some(
+
+            x =>
+            x.round.date === round.date
+
+        );
+
+
+    },
+
+
+
+
+
+    getImpact(
+        round,
+        rounds
+    ){
+
+
+        const playerRounds =
+
+            rounds.filter(
+
+                r =>
+                r.player === round.player
+
+            );
+
+
+
+        const before =
+
+            WHS.calculateHandicapIndex(
+
+                playerRounds.filter(
+
+                    r =>
+                    r.date !== round.date
+
+                )
+
+            );
+
+
+
+        const after =
+
+            WHS.calculateHandicapIndex(
+
+                playerRounds
+
+            );
+
+
+
+        if(
+            before === null ||
+            after === null
+        ){
+
+            return "Not enough rounds";
+
+        }
+
+
+
+        if(after < before){
+
+            return (
+
+                "Improved " +
+
+                before.toFixed(1) +
+
+                " → " +
+
+                after.toFixed(1)
+
+            );
+
+        }
+
+
+
+        if(after > before){
+
+            return (
+
+                "Increased " +
+
+                before.toFixed(1) +
+
+                " → " +
+
+                after.toFixed(1)
+
+            );
+
+        }
+
+
+
+        return "No change";
+
+
+    },
+
+
+
+
+
+    buildTable(rounds){
 
 
 
@@ -157,24 +319,22 @@ window.History = {
 
         <tr>
 
-            <th>Date</th>
+        <th>Date</th>
 
-            <th>Player</th>
+        <th>Player</th>
 
-            <th>Course</th>
+        <th>Course</th>
 
-            <th>Score</th>
+        <th>Score</th>
 
-            <th>Rating</th>
+        <th>Differential</th>
 
-            <th>Slope</th>
+        <th>Status</th>
 
-            <th>Differential</th>
-
-            <th>Status</th>
-
+        <th>Impact</th>
 
         </tr>
+
 
         </thead>
 
@@ -186,103 +346,97 @@ window.History = {
 
 
 
-        rounds.forEach(round => {
+        rounds.forEach(
+            round => {
 
 
-
-            const status =
-
-                round.counting
-                ? "Counting"
-                : "Non-counting";
+                html += `
 
 
+                <tr class="${
 
-            html += `
+                    round.counting
 
+                    ? "counting"
 
-            <tr class="${
+                    : "non-counting"
 
-                round.counting
-
-                ? "counting"
-
-                : "non-counting"
-
-            }">
+                }">
 
 
                 <td>
 
-                    ${Utils.formatDate(
-                        round.date
-                    )}
+                ${Utils.formatDate(
+                    round.date
+                )}
 
                 </td>
 
 
                 <td>
 
-                    ${Utils.escapeHTML(
-                        round.player
-                    )}
+                ${Utils.escapeHTML(
+                    round.player
+                )}
 
                 </td>
 
 
                 <td>
 
-                    ${Utils.escapeHTML(
-                        round.course
-                    )}
+                ${Utils.escapeHTML(
+                    round.course
+                )}
 
                 </td>
 
 
                 <td>
 
-                    ${round.score}
+                ${round.score}
 
                 </td>
 
 
                 <td>
 
-                    ${round.rating}
+                ${Utils.formatDifferential(
+                    round.differential
+                )}
 
                 </td>
 
 
                 <td>
 
-                    ${round.slope}
+                ${
+                    round.counting
+
+                    ? "Counting"
+
+                    : "Non-counting"
+
+                }
 
                 </td>
 
 
                 <td>
 
-                    ${Utils.formatDifferential(
-                        round.differential
-                    )}
+                ${round.impact}
 
                 </td>
 
 
-                <td>
-
-                    ${status}
-
-                </td>
+                </tr>
 
 
-            </tr>
+                `;
 
 
-            `;
+            }
 
-
-        });
+        );
 
 
 
@@ -308,25 +462,18 @@ window.History = {
 
 
 
-    /* ================================
-       Filters (Future UI Support)
-    ================================= */
-
-
     filterByPlayer(
         rounds,
         player
-    ) {
+    ){
 
 
         if(
             !player ||
             player === "All"
-        ) {
-
+        ){
 
             return rounds;
-
 
         }
 
@@ -346,12 +493,7 @@ window.History = {
 
 
 
-    /* ================================
-       Get Counting Rounds
-    ================================= */
-
-
-    getCountingRounds(rounds) {
+    getCountingRounds(rounds){
 
 
         return rounds.filter(
@@ -368,12 +510,7 @@ window.History = {
 
 
 
-    /* ================================
-       Get Non Counting Rounds
-    ================================= */
-
-
-    getNonCountingRounds(rounds) {
+    getNonCountingRounds(rounds){
 
 
         return rounds.filter(
@@ -385,7 +522,6 @@ window.History = {
 
 
     }
-
 
 
 };
