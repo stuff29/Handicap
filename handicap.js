@@ -44,8 +44,20 @@ window.Handicap = {
                         0,
 
 
-                    averageDifferential:
-                        0
+averageDifferential:
+    0,
+
+targetHandicap:
+
+    round.player === "Mike"
+
+        ? 10
+
+        : round.player === "Johnny"
+
+            ? 15
+
+            : null
 
 
 
