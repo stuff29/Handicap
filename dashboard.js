@@ -1,7 +1,8 @@
 /* ==========================================
    Golf Tracker v3
-   Dashboard Renderer
-   ========================================== */
+   Dashboard Module
+   Deliverable 32
+========================================== */
 
 "use strict";
 
@@ -9,277 +10,164 @@
 window.Dashboard = {
 
 
-    /* ================================
-       Render Dashboard
-    ================================= */
+render(players){
 
 
-    render(players) {
+    this.renderPlayer(
+        players.Mike,
+        "mikeHandicap",
+        "mikeSummary"
+    );
 
 
-        if(!players) {
-
-            return;
-
-        }
-
-
-
-        this.renderPlayer(
-            "Mike",
-            players.Mike
-        );
+    this.renderPlayer(
+        players.Johnny,
+        "johnnyHandicap",
+        "johnnySummary"
+    );
 
 
-
-        this.renderPlayer(
-            "Johnny",
-            players.Johnny
-        );
+    this.renderStats(
+        players
+    );
 
 
+    if(
+        typeof Impact !== "undefined"
+    ){
 
-        this.renderSummary(
+        Impact.render(
             players
         );
 
+    }
 
 
-        this.renderSolver(
-            players
-        );
-
-
-    },
+},
 
 
 
 
-
-    /* ================================
-       Player Cards
-    ================================= */
 
 
 renderPlayer(
-    name,
-    player
-) {
+    player,
+    handicapID,
+    summaryID
+){
 
 
-    if(!player) {
-
+    if(!player)
         return;
 
-    }
 
 
-    const handicapElement =
+    const handicap =
 
-        document.getElementById(
-
-            name.toLowerCase() +
-            "Handicap"
-
+        WHS.calculateHandicapIndex(
+            player.rounds
         );
 
-
-    const summaryElement =
-
-        document.getElementById(
-
-            name.toLowerCase() +
-            "Summary"
-
-        );
-
-
-    if(handicapElement) {
-
-        handicapElement.textContent =
-
-            Utils.formatHandicap(
-                player.handicap
-            );
-
-    }
-
-
-    if(!summaryElement) {
-
-        return;
-
-    }
 
 
     const history =
 
-        Charts.calculateHistory(
+        Charts.getStatistics(
             player
         );
 
 
-    let seasonLow = null;
 
-    let improvement = null;
+    const lastRound =
 
-    let trend = "--";
-
-
-    if(history.length > 0) {
-
-        seasonLow =
-
-            Math.min(
-
-                ...history.map(
-
-                    h => h.value
-
-                )
-
-            );
+        player.rounds[
+            player.rounds.length - 1
+        ];
 
 
-        improvement =
 
-            history[0].value -
-            history[
-                history.length - 1
-            ].value;
+    document.getElementById(
+        handicapID
+    ).innerHTML =
 
 
-        if(history.length >= 3) {
+        handicap !== null
 
-            const latest =
+        ?
 
-                history[
-                    history.length - 1
-                ].value;
+        handicap.toFixed(1)
 
+        :
 
-            const previous =
-
-                history[
-                    history.length - 3
-                ].value;
+        "--";
 
 
-            if(latest < previous - 0.2) {
 
-                trend = "Improving";
 
-            }
 
-            else if(latest > previous + 0.2) {
+    document.getElementById(
+        summaryID
+    ).innerHTML = `
 
-                trend = "Declining";
 
-            }
-
-            else {
-
-                trend = "Stable";
-
-            }
-
-        }
-
+    <p>
+    Season Low:
+    <strong>
+    ${
+        history
+        ?
+        history.low.toFixed(1)
+        :
+        "--"
     }
+    </strong>
+    </p>
 
 
-    summaryElement.innerHTML = `
-
-        <p>
-
-            <strong>Target:</strong>
-
-            ${Utils.formatHandicap(
-
-                player.targetHandicap
-
-            )}
-
-        </p>
-
-
-        <p>
-
-            <strong>Rounds:</strong>
-
-            ${player.totalRounds}
-
-        </p>
+    <p>
+    Improvement:
+    <strong>
+    ${
+        history
+        ?
+        history.improvement.toFixed(1)
+        :
+        "--"
+    }
+    </strong>
+    strokes
+    </p>
 
 
-        <p>
 
-            <strong>Average Score:</strong>
-
-            ${player.averageScore !== undefined
-
-                ? Math.round(
-                    player.averageScore
-                )
-
-                : "--"}
-
-        </p>
-
-
-        <p>
-
-            <strong>Average Differential:</strong>
-
-            ${Utils.formatDifferential(
-
-                player.averageDifferential
-
-            )}
-
-        </p>
+    <p>
+    Last Round:
+    <strong>
+    ${
+        lastRound
+        ?
+        lastRound.score
+        :
+        "--"
+    }
+    </strong>
+    </p>
 
 
-        <hr>
 
+    <p>
+    Differential:
+    <strong>
+    ${
+        lastRound
+        ?
+        WHS.calculateDifferential(lastRound)
+        :
+        "--"
+    }
+    </strong>
+    </p>
 
-        <p>
-
-            <strong>Season Low:</strong>
-
-            ${seasonLow !== null
-
-                ? Utils.formatHandicap(
-                    seasonLow
-                )
-
-                : "--"}
-
-        </p>
-
-
-        <p>
-
-            <strong>Season Improvement:</strong>
-
-            ${improvement !== null
-
-                ? Utils.formatDifferential(
-                    improvement
-                )
-
-                : "--"}
-
-        </p>
-
-
-        <p>
-
-            <strong>Trend:</strong>
-
-            ${trend}
-
-        </p>
 
     `;
 
@@ -290,238 +178,53 @@ renderPlayer(
 
 
 
-    /* ================================
-       Solver Integration
-    ================================= */
 
 
-    renderSolver(players) {
+renderStats(players){
 
 
-        if(!window.Solver) {
+    const container =
 
-
-            console.warn(
-                "Solver module unavailable."
-            );
-
-
-            return;
-
-        }
-
-
-
-        Solver.players = players;
-
-
-
-        Solver.renderGoals();
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Dashboard Statistics
-    ================================= */
-
-
-    renderSummary(players) {
-
-
-        const container =
-
-            document.getElementById(
-                "dashboardStats"
-            );
-
-
-
-        if(!container) {
-
-            return;
-
-        }
-
-
-
-        let html = "";
-
-
-
-        Object.values(players)
-            .forEach(player => {
-
-
-                html += `
-
-
-                <div class="card">
-
-
-                    <h3>
-                        ${player.name}
-                    </h3>
-
-
-                    <p>
-                        Lowest Handicap:
-                        ${this.lowestDifferential(
-                            player
-                        )}
-                    </p>
-
-
-                    <p>
-                        Counting Rounds:
-                        ${this.countingRounds(
-                            player
-                        )}
-                    </p>
-
-
-                    <p>
-                        Last Round:
-                        ${this.lastScore(
-                            player
-                        )}
-                    </p>
-
-
-                </div>
-
-
-                `;
-
-
-            });
-
-
-
-        container.innerHTML = html;
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Helper Statistics
-    ================================= */
-
-
-    lowestDifferential(player) {
-
-
-        if(
-            !player.rounds ||
-            !player.rounds.length
-        ){
-
-            return "--";
-
-        }
-
-
-
-        const values =
-
-            player.rounds
-
-            .map(
-                round =>
-                round.differential
-            )
-
-            .filter(
-                value =>
-                value !== null
-            );
-
-
-
-        if(!values.length) {
-
-            return "--";
-
-        }
-
-
-
-        return Utils.formatDifferential(
-
-            Math.min(
-                ...values
-            )
-
+        document.getElementById(
+            "dashboardStats"
         );
 
 
-    },
+    if(!container)
+        return;
 
 
 
+    container.innerHTML = `
 
 
-    countingRounds(player) {
+    <h2>
+    Handicap Summary
+    </h2>
 
 
-        if(
-            !player.rounds
-        ){
-
-            return 0;
-
-        }
-
-
-
-        return player.rounds.filter(
-
-            round =>
-            round.counting
-
-        ).length;
-
-
-    },
-
-
-
-
-
-    lastScore(player) {
-
-
-        if(
-            !player.rounds ||
-            !player.rounds.length
-        ){
-
-            return "--";
-
-        }
-
-
-
-        const last =
-
-            player.rounds[
-                player.rounds.length - 1
-            ];
-
-
-
-        return last.score ?? "--";
-
-
+    <p>
+    Players tracked:
+    ${
+        Object.keys(players).length
     }
+    </p>
+
+
+    <p>
+    Total rounds:
+    ${
+        GolfTracker.rounds.length
+    }
+    </p>
+
+
+
+    `;
+
+
+
+}
 
 
 
