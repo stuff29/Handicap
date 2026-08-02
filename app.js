@@ -1,7 +1,9 @@
 /* ==========================================
    Golf Tracker v3
    Main Application Controller
-   ========================================== */
+
+   Deliverable 35
+========================================== */
 
 "use strict";
 
@@ -44,16 +46,6 @@ window.GolfTracker = {
 
 
             this.initializeModules();
-
-
-if(typeof Impact !== "undefined"){
-
-    Impact.initialize(
-        this.players,
-        this.rounds
-    );
-
-}
 
 
 
@@ -103,6 +95,8 @@ if(typeof Impact !== "undefined"){
 
 
 
+
+
     /* ================================
        Load CSV Data
     ================================= */
@@ -126,8 +120,11 @@ if(typeof Impact !== "undefined"){
 
 
         if(
+
             !this.rounds ||
+
             this.rounds.length === 0
+
         ) {
 
 
@@ -142,6 +139,8 @@ if(typeof Impact !== "undefined"){
 
 
 
+
+
         this.players =
 
             Handicap.initializePlayers(
@@ -151,7 +150,10 @@ if(typeof Impact !== "undefined"){
             );
 
 
+
     },
+
+
 
 
 
@@ -162,31 +164,83 @@ if(typeof Impact !== "undefined"){
     ================================= */
 
 
-initializeModules() {
+    initializeModules() {
 
-    Solver.initialize(
-        this.players,
-        this.rounds
-    );
 
-    TimeMachine.initialize(
-        this.rounds
-    );
 
-    Charts.initialize();
+        Solver.initialize(
 
-},
+            this.players,
+
+            this.rounds
+
+        );
+
+
+
+
+
+        TimeMachine.initialize(
+
+            this.rounds
+
+        );
+
+
+
+
+
+        if(
+
+            typeof Charts !== "undefined"
+
+        ) {
+
+
+            Charts.initialize();
+
+
+        }
+
+
+
+
+
+        if(
+
+            typeof Impact !== "undefined"
+
+        ) {
+
+
+            Impact.initialize(
+
+                this.players,
+
+                this.rounds
+
+            );
+
+
+        }
+
+
+
+    },
+
+
 
 
 
 
 
     /* ================================
-       Rendering
+       Render Application
     ================================= */
 
 
-renderApplication() {
+    renderApplication() {
+
 
 
         Dashboard.render(
@@ -197,11 +251,15 @@ renderApplication() {
 
 
 
+
+
         History.render(
 
             this.rounds
 
         );
+
+
 
 
 
@@ -215,26 +273,42 @@ renderApplication() {
 
 
 
-        Charts.render(
 
-            this.players
 
-        );
+        if(
+
+            typeof Charts !== "undefined"
+
+        ) {
+
+
+            const firstPlayer =
+
+                Object.keys(
+                    this.players
+                )[0];
+
+
+
+            Charts.renderPlayer(
+
+                firstPlayer
+
+            );
+
+
+        }
+
+
+
 
 
 
         if(
+
             typeof Impact !== "undefined"
+
         ) {
-
-
-            Impact.initialize(
-
-                this.players,
-
-                this.rounds
-
-            );
 
 
             Impact.render(
@@ -247,7 +321,10 @@ renderApplication() {
         }
 
 
+
     },
+
+
 
 
 
@@ -261,22 +338,74 @@ renderApplication() {
     async refresh() {
 
 
-        await this.loadApplicationData();
+
+        try {
+
+
+            UI.showLoading(
+
+                "Refreshing data..."
+
+            );
 
 
 
-        this.renderApplication();
+            await this.loadApplicationData();
 
 
 
-        UI.toast(
+            this.initializeModules();
 
-            "Data refreshed."
 
-        );
+
+            this.renderApplication();
+
+
+
+            UI.hideLoading();
+
+
+
+            UI.toast(
+
+                "Data refreshed."
+
+            );
+
+
+        }
+
+
+        catch(error) {
+
+
+
+            console.error(
+
+                "Refresh error:",
+
+                error
+
+            );
+
+
+            UI.showError(
+
+                error.message
+
+            );
+
+
+            UI.hideLoading();
+
+
+        }
+
 
 
     },
+
+
 
 
 
@@ -290,7 +419,16 @@ renderApplication() {
     getPlayer(name) {
 
 
-        return this.players[name] || null;
+
+        return (
+
+            this.players[name]
+
+            ||
+
+            null
+
+        );
 
 
     },
@@ -299,7 +437,10 @@ renderApplication() {
 
 
 
+
+
     getRounds(player = null) {
+
 
 
         if(!player) {
@@ -314,14 +455,18 @@ renderApplication() {
 
         return this.rounds.filter(
 
+
             round =>
 
             round.player === player
+
 
         );
 
 
     }
+
+
 
 
 
@@ -331,9 +476,11 @@ renderApplication() {
 
 
 
+
+
 /* ==========================================
    Start Application
-   ========================================== */
+========================================== */
 
 
 document.addEventListener(
