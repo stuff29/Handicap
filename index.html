@@ -341,7 +341,7 @@ Round
 
 <section
 id="charts"
-class="page app-section active">
+class="page app-section">
 
 
 <h2>
@@ -349,18 +349,35 @@ Handicap Trend Charts
 </h2>
 
 
-
 <div class="card">
 
 
-<button onclick="Charts.render(GolfTracker.players.Mike)">
+<label>
+
+Select Player:
+
+<select id="chartPlayer">
+
+<option value="Mike">
 Mike
-</button>
+</option>
 
 
-<button onclick="Charts.render(GolfTracker.players.Johnny)">
+<option value="Johnny">
 Johnny
-</button>
+</option>
+
+
+</select>
+
+</label>
+
+
+
+<div id="chartStats"
+style="margin-top:20px;">
+
+</div>
 
 
 
@@ -373,7 +390,6 @@ height="500">
 
 
 </div>
-
 
 
 </section>
