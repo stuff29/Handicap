@@ -353,15 +353,15 @@ window.History = {
                 html += `
 
 
-                <tr class="${
+<tr class="${
+    
+    round.counting
 
-                    round.counting
+    ? "counting " + round.player.toLowerCase()
 
-                    ? "counting"
+    : "non-counting " + round.player.toLowerCase()
 
-                    : "non-counting"
-
-                }">
+}">
 
 
                 <td>
