@@ -1,7 +1,7 @@
 /* ==========================================
    Golf Tracker v3
    Dashboard Module
-   Deliverable 32
+   Deliverable 33
 ========================================== */
 
 "use strict";
@@ -32,9 +32,7 @@ render(players){
     );
 
 
-    if(
-        typeof Impact !== "undefined"
-    ){
+    if(typeof Impact !== "undefined"){
 
         Impact.render(
             players
@@ -50,6 +48,7 @@ render(players){
 
 
 
+
 renderPlayer(
     player,
     handicapID,
@@ -57,8 +56,11 @@ renderPlayer(
 ){
 
 
-    if(!player)
+    if(!player){
+
         return;
+
+    }
 
 
 
@@ -86,90 +88,193 @@ renderPlayer(
 
 
 
-    document.getElementById(
-        handicapID
-    ).innerHTML =
+    const target =
+
+        GolfConfig.TARGETS[player.name];
 
 
-        handicap !== null
+
+    const strokesNeeded =
+
+        handicap !== null && target
 
         ?
 
-        handicap.toFixed(1)
+        Math.max(
+            0,
+            handicap - target
+        )
 
         :
 
-        "--";
+        null;
 
 
 
+    let status = "On Track";
 
 
-    document.getElementById(
-        summaryID
-    ).innerHTML = `
 
+    if(strokesNeeded > 0){
 
-    <p>
-    Season Low:
-    <strong>
-    ${
-        history
-        ?
-        history.low.toFixed(1)
-        :
-        "--"
+        status =
+            strokesNeeded.toFixed(1)
+            +
+            " strokes to goal";
+
     }
-    </strong>
-    </p>
 
+    else if(strokesNeeded === 0){
 
-    <p>
-    Improvement:
-    <strong>
-    ${
-        history
-        ?
-        history.improvement.toFixed(1)
-        :
-        "--"
+        status =
+            "Goal Reached";
+
     }
-    </strong>
-    strokes
-    </p>
 
 
 
-    <p>
-    Last Round:
-    <strong>
-    ${
-        lastRound
-        ?
-        lastRound.score
-        :
-        "--"
+
+
+    const handicapElement =
+
+        document.getElementById(
+            handicapID
+        );
+
+
+
+    if(handicapElement){
+
+        handicapElement.innerHTML =
+
+            handicap !== null
+
+            ?
+
+            handicap.toFixed(1)
+
+            :
+
+            "--";
+
     }
-    </strong>
-    </p>
 
 
 
-    <p>
-    Differential:
-    <strong>
-    ${
-        lastRound
-        ?
-        WHS.calculateDifferential(lastRound)
-        :
-        "--"
+
+
+
+    const summaryElement =
+
+        document.getElementById(
+            summaryID
+        );
+
+
+
+    if(summaryElement){
+
+
+        summaryElement.innerHTML = `
+
+
+
+        <p>
+        Target Handicap:
+        <strong>
+        ${
+            target !== undefined
+            ?
+            target.toFixed(1)
+            :
+            "--"
+        }
+        </strong>
+        </p>
+
+
+
+
+        <p>
+        Status:
+        <strong>
+        ${status}
+        </strong>
+        </p>
+
+
+
+
+        <p>
+        Season Low:
+        <strong>
+        ${
+            history
+            ?
+            history.low.toFixed(1)
+            :
+            "--"
+        }
+        </strong>
+        </p>
+
+
+
+
+        <p>
+        Improvement:
+        <strong>
+        ${
+            history
+            ?
+            history.improvement.toFixed(1)
+            :
+            "--"
+        }
+        </strong>
+        strokes
+        </p>
+
+
+
+
+        <p>
+        Last Round:
+        <strong>
+        ${
+            lastRound
+            ?
+            lastRound.score
+            :
+            "--"
+        }
+        </strong>
+        </p>
+
+
+
+
+        <p>
+        Differential:
+        <strong>
+        ${
+            lastRound
+            ?
+            WHS.calculateDifferential(
+                lastRound
+            ).toFixed(1)
+            :
+            "--"
+        }
+        </strong>
+        </p>
+
+
+
+        `;
+
+
     }
-    </strong>
-    </p>
-
-
-    `;
 
 
 },
@@ -190,12 +295,17 @@ renderStats(players){
         );
 
 
-    if(!container)
+
+    if(!container){
+
         return;
+
+    }
 
 
 
     container.innerHTML = `
+
 
 
     <h2>
@@ -203,19 +313,25 @@ renderStats(players){
     </h2>
 
 
+
     <p>
     Players tracked:
+    <strong>
     ${
         Object.keys(players).length
     }
+    </strong>
     </p>
+
 
 
     <p>
     Total rounds:
+    <strong>
     ${
         GolfTracker.rounds.length
     }
+    </strong>
     </p>
 
 
