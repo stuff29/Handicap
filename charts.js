@@ -1,6 +1,6 @@
 /* ==========================================
    Golf Tracker v3
-   Trend Charts Module
+   Handicap Trend Charts
    ========================================== */
 
 "use strict";
@@ -15,132 +15,45 @@ window.Charts = {
 
 
 
-    /* ================================
-       Render Charts
-    ================================= */
-
-
-    render(players) {
+    initialize() {
 
 
         this.canvas =
+
             document.getElementById(
-                "trendChart"
+                "handicapChart"
             );
 
 
-
         if(!this.canvas) {
+
+            console.warn(
+                "Handicap chart canvas missing."
+            );
 
             return;
 
         }
 
 
-
         this.context =
+
             this.canvas.getContext(
                 "2d"
             );
 
 
-
-        this.clear();
-
-
-
-        if(!players) {
-
-            return;
-
-        }
-
-
-
-        this.drawTitle(
-            "Handicap Trend"
-        );
-
-
-
-        const datasets =
-            this.buildDatasets(
-                players
-            );
-
-
-
-        this.drawChart(
-            datasets
-        );
-
-
     },
 
 
 
-
-
-    /* ================================
-       Build Data Sets
-    ================================= */
-
-
-    buildDatasets(players) {
-
-
-        const datasets = [];
-
-
-
-        Object.values(players)
-
-        .forEach(player => {
-
-
-            const history =
-
-                this.calculateHistory(
-                    player
-                );
-
-
-
-            datasets.push({
-
-                name:
-                    player.name,
-
-
-                values:
-                    history
-
-
-            });
-
-
-        });
-
-
-
-        return datasets;
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Calculate Handicap History
-    ================================= */
 
 
     calculateHistory(player) {
 
 
         const rounds =
+
             player.rounds || [];
 
 
@@ -153,7 +66,7 @@ window.Charts = {
             let i = 0;
             i < rounds.length;
             i++
-        ){
+        ) {
 
 
             const current =
@@ -165,34 +78,37 @@ window.Charts = {
 
 
 
-            history.push({
+            const handicap =
 
-                date:
-                    current[i].date,
-
-
-                value:
-
-                    WHS.calculateHandicapIndex(
-                        current
-                    )
+                WHS.calculateHandicapIndex(
+                    current
+                );
 
 
-            });
+
+            if(handicap !== null) {
+
+
+                history.push({
+
+                    date:
+                        rounds[i].date,
+
+
+                    value:
+                        handicap
+
+                });
+
+
+            }
 
 
         }
 
 
 
-return history.filter(
-
-    item =>
-
-    item.value !== null &&
-    !Number.isNaN(item.value)
-
-);
+        return history;
 
 
     },
@@ -201,22 +117,75 @@ return history.filter(
 
 
 
-    /* ================================
-       Canvas Helpers
-    ================================= */
+
+
+    render(player) {
+
+
+        if(
+            !this.canvas ||
+            !this.context ||
+            !player
+        ) {
+
+            return;
+
+        }
+
+
+
+        const history =
+
+            this.calculateHistory(
+                player
+            );
+
+
+
+        this.clear();
+
+
+
+        if(history.length < 2) {
+
+            return;
+
+        }
+
+
+
+        this.drawAxis();
+
+
+
+        this.drawChart(
+            history
+        );
+
+
+    },
+
+
+
+
+
 
 
     clear() {
 
 
+        if(!this.context) {
+
+            return;
+
+        }
+
+
         this.context.clearRect(
 
             0,
-
             0,
-
             this.canvas.width,
-
             this.canvas.height
 
         );
@@ -228,114 +197,51 @@ return history.filter(
 
 
 
-    drawTitle(title) {
 
 
-        this.context.font =
-            "24px Arial";
-
-
-
-        this.context.fillText(
-
-            title,
-
-            40,
-
-            40
-
-        );
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Draw Chart
-    ================================= */
-
-
-    drawChart(datasets) {
-
-
-        if(
-            datasets.length === 0
-        ){
-
-            return;
-
-        }
-
+    drawChart(history) {
 
 
         const ctx =
             this.context;
 
 
+        const padding = 40;
+
 
         const width =
-            this.canvas.width;
-
+            this.canvas.width -
+            padding * 2;
 
 
         const height =
-            this.canvas.height;
+            this.canvas.height -
+            padding * 2;
 
 
 
-        const padding = 70;
+        const values =
 
-
-
-        let values = [];
-
-
-
-        datasets.forEach(dataset => {
-
-
-            dataset.values.forEach(point => {
-
-
-                values.push(
-                    point.value
-                );
-
-
-            });
-
-
-        });
-
-
-
-        if(values.length === 0) {
-
-            return;
-
-        }
+            history.map(
+                item =>
+                item.value
+            );
 
 
 
         const max =
+
             Math.max(
                 ...values
-            );
+            ) + 1;
 
 
 
         const min =
+
             Math.min(
                 ...values
-            );
-
-
-
-        const range =
-            max - min || 1;
+            ) - 1;
 
 
 
@@ -343,113 +249,77 @@ return history.filter(
 
 
 
-        datasets.forEach(
-            dataset => {
+        history.forEach(
+
+            (item,index)=>{
 
 
-                dataset.values.forEach(
-                    (point,index)=>{
+                const x =
 
+                    padding +
 
-                        const x =
+                    (
 
-                            padding +
+                        index /
 
-                            (
+                        (
+                            history.length - 1
+                        )
 
-                                index /
+                    )
 
-                                Math.max(
+                    *
 
-                                    dataset.values.length - 1,
-
-                                    1
-
-                                )
-
-                            )
-
-                            *
-
-                            (
-
-                                width -
-                                padding * 2
-
-                            );
+                    width;
 
 
 
-                        const y =
+                const y =
 
-                            height -
-                            padding -
+                    padding +
 
-                            (
+                    (
 
-                                (
+                        (
+                            max -
+                            item.value
+                        )
 
-                                    point.value -
-                                    min
+                        /
 
-                                )
+                        (
+                            max -
+                            min
+                        )
 
-                                /
+                    )
 
-                                range
+                    *
 
-                            )
-
-                            *
-
-                            (
-
-                                height -
-                                padding * 2
-
-                            );
+                    height;
 
 
 
-                        if(index === 0){
+                if(index === 0) {
 
-                            ctx.moveTo(
-                                x,
-                                y
-                            );
+                    ctx.moveTo(
+                        x,
+                        y
+                    );
 
-                        }
+                }
 
-                        else {
+                else {
 
-                            ctx.lineTo(
-                                x,
-                                y
-                            );
+                    ctx.lineTo(
+                        x,
+                        y
+                    );
 
-                        }
-
-
-
-                        ctx.fillText(
-
-                            point.value.toFixed(1),
-
-                            x,
-
-                            y - 10
-
-                        );
-
-
-                    }
-
-
-                );
+                }
 
 
             }
-
 
         );
 
@@ -459,65 +329,62 @@ return history.filter(
 
 
 
-        this.drawAxis(
-            min,
-            max
-        );
-
-
     },
 
 
 
 
 
-    /* ================================
-       Axis
-    ================================= */
 
 
-    drawAxis(min,max) {
+    drawAxis() {
 
 
         const ctx =
             this.context;
 
 
-
-        const height =
-            this.canvas.height;
+        const padding = 40;
 
 
 
-        ctx.font =
-            "14px Arial";
+        ctx.beginPath();
 
 
 
-        ctx.fillText(
+        ctx.moveTo(
+            padding,
+            padding
+        );
 
-            max.toFixed(1),
 
-            20,
+        ctx.lineTo(
 
-            80
+            padding,
+
+            this.canvas.height -
+            padding
 
         );
 
 
+        ctx.lineTo(
 
-        ctx.fillText(
+            this.canvas.width -
+            padding,
 
-            min.toFixed(1),
-
-            20,
-
-            height - 70
+            this.canvas.height -
+            padding
 
         );
+
+
+        ctx.stroke();
 
 
     }
+
+
 
 
 
