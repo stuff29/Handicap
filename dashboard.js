@@ -61,93 +61,230 @@ window.Dashboard = {
     ================================= */
 
 
-    renderPlayer(
-        name,
-        player
-    ) {
+renderPlayer(
+    name,
+    player
+) {
 
 
-        if(!player) {
+    if(!player) {
 
-            return;
+        return;
 
-        }
+    }
 
 
+    const handicapElement =
 
-        const handicapElement =
+        document.getElementById(
 
-            document.getElementById(
-                name.toLowerCase() +
-                "Handicap"
+            name.toLowerCase() +
+            "Handicap"
+
+        );
+
+
+    const summaryElement =
+
+        document.getElementById(
+
+            name.toLowerCase() +
+            "Summary"
+
+        );
+
+
+    if(handicapElement) {
+
+        handicapElement.textContent =
+
+            Utils.formatHandicap(
+                player.handicap
+            );
+
+    }
+
+
+    if(!summaryElement) {
+
+        return;
+
+    }
+
+
+    const history =
+
+        Charts.calculateHistory(
+            player
+        );
+
+
+    let seasonLow = null;
+
+    let improvement = null;
+
+    let trend = "--";
+
+
+    if(history.length > 0) {
+
+        seasonLow =
+
+            Math.min(
+
+                ...history.map(
+
+                    h => h.value
+
+                )
+
             );
 
 
+        improvement =
 
-        const summaryElement =
-
-            document.getElementById(
-                name.toLowerCase() +
-                "Summary"
-            );
-
+            history[0].value -
+            history[
+                history.length - 1
+            ].value;
 
 
-        if(handicapElement) {
+        if(history.length >= 3) {
+
+            const latest =
+
+                history[
+                    history.length - 1
+                ].value;
 
 
-            handicapElement.textContent =
+            const previous =
 
-                Utils.formatHandicap(
-                    player.handicap
-                );
-
-
-        }
+                history[
+                    history.length - 3
+                ].value;
 
 
+            if(latest < previous - 0.2) {
 
-        if(summaryElement) {
+                trend = "Improving";
 
+            }
 
-            summaryElement.innerHTML = `
+            else if(latest > previous + 0.2) {
 
-                <p>
-                    <strong>Target:</strong>
-                    ${Utils.formatHandicap(
-                        player.targetHandicap
-                    )}
-                </p>
+                trend = "Declining";
 
+            }
 
-                <p>
-                    <strong>Rounds:</strong>
-                    ${player.totalRounds}
-                </p>
+            else {
 
+                trend = "Stable";
 
-                <p>
-                    <strong>Average Score:</strong>
-                    ${player.averageScore !== undefined
-                        ? Math.round(player.averageScore)
-                        : "--"}
-                </p>
-
-
-                <p>
-                    <strong>Average Differential:</strong>
-                    ${Utils.formatDifferential(
-                        player.averageDifferential
-                    )}
-                </p>
-
-            `;
-
+            }
 
         }
 
+    }
 
-    },
+
+    summaryElement.innerHTML = `
+
+        <p>
+
+            <strong>Target:</strong>
+
+            ${Utils.formatHandicap(
+
+                player.targetHandicap
+
+            )}
+
+        </p>
+
+
+        <p>
+
+            <strong>Rounds:</strong>
+
+            ${player.totalRounds}
+
+        </p>
+
+
+        <p>
+
+            <strong>Average Score:</strong>
+
+            ${player.averageScore !== undefined
+
+                ? Math.round(
+                    player.averageScore
+                )
+
+                : "--"}
+
+        </p>
+
+
+        <p>
+
+            <strong>Average Differential:</strong>
+
+            ${Utils.formatDifferential(
+
+                player.averageDifferential
+
+            )}
+
+        </p>
+
+
+        <hr>
+
+
+        <p>
+
+            <strong>Season Low:</strong>
+
+            ${seasonLow !== null
+
+                ? Utils.formatHandicap(
+                    seasonLow
+                )
+
+                : "--"}
+
+        </p>
+
+
+        <p>
+
+            <strong>Season Improvement:</strong>
+
+            ${improvement !== null
+
+                ? Utils.formatDifferential(
+                    improvement
+                )
+
+                : "--"}
+
+        </p>
+
+
+        <p>
+
+            <strong>Trend:</strong>
+
+            ${trend}
+
+        </p>
+
+    `;
+
+
+},
 
 
 
