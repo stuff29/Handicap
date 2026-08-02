@@ -183,7 +183,7 @@ window.GolfTracker = {
     ================================= */
 
 
-    renderApplication() {
+renderApplication() {
 
 
         Dashboard.render(
@@ -217,6 +217,31 @@ window.GolfTracker = {
             this.players
 
         );
+
+
+
+        if(
+            typeof Impact !== "undefined"
+        ) {
+
+
+            Impact.initialize(
+
+                this.players,
+
+                this.rounds
+
+            );
+
+
+            Impact.render(
+
+                this.players
+
+            );
+
+
+        }
 
 
     },
