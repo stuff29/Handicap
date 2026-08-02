@@ -1,7 +1,7 @@
 /* ==========================================
    Golf Tracker v3
    Interactive Handicap Trend Charts
-   Deliverable 32
+   Deliverable 36
    ========================================== */
 
 "use strict";
@@ -17,12 +17,15 @@ window.Charts = {
     currentPlayer:null,
 
 
+
     initialize(){
+
 
         this.canvas =
             document.getElementById(
                 "handicapChart"
             );
+
 
 
         if(!this.canvas){
@@ -36,17 +39,78 @@ window.Charts = {
         }
 
 
+
         this.context =
             this.canvas.getContext(
                 "2d"
             );
 
 
+
+        const selector =
+            document.getElementById(
+                "chartPlayer"
+            );
+
+
+
+        if(selector){
+
+
+            selector.addEventListener(
+                "change",
+                ()=>{
+
+
+                    this.renderPlayer(
+                        selector.value
+                    );
+
+
+                }
+            );
+
+
+        }
+
+
+
+        /*
+            Load default player
+        */
+
+        if(
+            typeof GolfTracker !== "undefined" &&
+            GolfTracker.players
+        ){
+
+
+            const firstPlayer =
+                Object.keys(
+                    GolfTracker.players
+                )[0];
+
+
+
+            if(firstPlayer){
+
+                this.renderPlayer(
+                    firstPlayer
+                );
+
+            }
+
+        }
+
+
     },
 
 
 
+
+
     renderPlayer(playerName){
+
 
         if(
             !GolfTracker.players[playerName]
@@ -57,29 +121,42 @@ window.Charts = {
         }
 
 
+
         const player =
             GolfTracker.players[playerName];
+
 
 
         this.currentPlayer =
             player;
 
 
-        this.updateStats(player);
+
+        this.updateStats(
+            player
+        );
 
 
-        this.render(player);
+
+        this.render(
+            player
+        );
+
 
     },
 
 
 
+
+
     updateStats(player){
+
 
         const container =
             document.getElementById(
                 "chartStats"
             );
+
 
 
         if(!container){
@@ -89,8 +166,12 @@ window.Charts = {
         }
 
 
+
         const stats =
-            this.getStatistics(player);
+            this.getStatistics(
+                player
+            );
+
 
 
         if(!stats){
@@ -106,26 +187,43 @@ window.Charts = {
 
         container.innerHTML = `
 
+
+        <p>
+        <strong>Player:</strong>
+        ${player.name}
+        </p>
+
+
         <p>
         <strong>Current Handicap:</strong>
         ${stats.current.toFixed(1)}
         </p>
 
+
         <p>
         <strong>Target Handicap:</strong>
-        ${player.targetHandicap?.toFixed(1) ?? "--"}
+        ${
+            player.targetHandicap !== undefined
+            ?
+            player.targetHandicap.toFixed(1)
+            :
+            "--"
+        }
         </p>
+
 
         <p>
         <strong>Season Low:</strong>
         ${stats.low.toFixed(1)}
         </p>
 
+
         <p>
         <strong>Season Improvement:</strong>
         ${stats.improvement.toFixed(1)}
         strokes
         </p>
+
 
         `;
 
@@ -134,10 +232,16 @@ window.Charts = {
 
 
 
+
+
     getStatistics(player){
 
+
         const history =
-            this.calculateHistory(player);
+            this.calculateHistory(
+                player
+            );
+
 
 
         if(!history.length){
@@ -147,26 +251,32 @@ window.Charts = {
         }
 
 
+
         const values =
             history.map(
                 x=>x.value
             );
 
 
+
         return {
+
 
             current:
                 values[
                     values.length-1
                 ],
 
+
             starting:
                 values[0],
+
 
             low:
                 Math.min(
                     ...values
                 ),
+
 
             improvement:
                 Number(
@@ -179,19 +289,26 @@ window.Charts = {
                     .toFixed(1)
                 )
 
+
         };
+
 
     },
 
 
 
+
+
     calculateHistory(player){
+
 
         const rounds =
             player.rounds || [];
 
 
+
         const history=[];
+
 
 
         for(
@@ -200,11 +317,13 @@ window.Charts = {
             i++
         ){
 
+
             const current =
                 rounds.slice(
                     0,
                     i+1
                 );
+
 
 
             const handicap =
@@ -213,35 +332,45 @@ window.Charts = {
                 );
 
 
+
             if(
                 handicap !== null &&
                 Number.isFinite(handicap)
             ){
 
+
                 history.push({
 
                     date:
-                    rounds[i].date,
+                        rounds[i].date,
+
 
                     value:
-                    Number(
-                        handicap.toFixed(1)
-                    )
+                        Number(
+                            handicap.toFixed(1)
+                        )
 
                 });
 
+
             }
+
 
         }
 
 
+
         return history;
+
 
     },
 
 
 
+
+
     render(player){
+
 
         if(
             !this.canvas ||
@@ -254,13 +383,16 @@ window.Charts = {
         }
 
 
+
         const history =
             this.calculateHistory(
                 player
             );
 
 
+
         this.clear();
+
 
 
         if(history.length < 2){
@@ -268,6 +400,7 @@ window.Charts = {
             return;
 
         }
+
 
 
         this.drawChart(
@@ -280,7 +413,10 @@ window.Charts = {
 
 
 
+
+
     clear(){
+
 
         this.context.clearRect(
 
@@ -292,7 +428,10 @@ window.Charts = {
 
         );
 
+
     },
+
+
 
 
 
@@ -315,10 +454,12 @@ window.Charts = {
             padding * 2;
 
 
+
         const values =
             history.map(
                 x=>x.value
             );
+
 
 
         const max =
@@ -326,6 +467,7 @@ window.Charts = {
                 ...values,
                 player.targetHandicap
             ) + 1;
+
 
 
         const min =
@@ -404,100 +546,17 @@ window.Charts = {
 
 
             }
-
         );
+
 
 
         ctx.stroke();
 
 
 
-        // Draw points and values
-
-        history.forEach(
-            (item,index)=>{
-
-
-                const x =
-                    padding +
-                    (
-                        index /
-                        (
-                            history.length-1
-                        )
-                    )
-                    *
-                    width;
-
-
-
-                const y =
-                    padding +
-                    (
-                        (
-                            max -
-                            item.value
-                        )
-                        /
-                        (
-                            max -
-                            min
-                        )
-                    )
-                    *
-                    height;
-
-
-
-                ctx.beginPath();
-
-                ctx.arc(
-                    x,
-                    y,
-                    4,
-                    0,
-                    Math.PI*2
-                );
-
-                ctx.fill();
-
-
-
-                ctx.fillText(
-
-                    item.value.toFixed(1),
-
-                    x-10,
-
-                    y-10
-
-                );
-
-
-                if(
-                    index === 0 ||
-                    index === history.length-1
-                ){
-
-                    ctx.fillText(
-
-                        item.date,
-
-                        x-25,
-
-                        this.canvas.height-20
-
-                    );
-
-                }
-
-
-            }
-
-        );
-
-
     },
+
+
 
 
 
@@ -508,6 +567,7 @@ window.Charts = {
         padding,
         height
     ){
+
 
         if(
             player.targetHandicap === undefined
@@ -552,11 +612,8 @@ window.Charts = {
 
 
         ctx.lineTo(
-
             this.canvas.width-padding,
-
             y
-
         );
 
 
