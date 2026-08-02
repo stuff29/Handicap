@@ -42,11 +42,7 @@ window.Impact = {
     analyzePlayer(player) {
 
 
-        if(
-            !player ||
-            !player.rounds ||
-            player.rounds.length < 2
-        ) {
+        if(!player) {
 
             return null;
 
@@ -56,7 +52,15 @@ window.Impact = {
 
         const rounds =
 
-            player.rounds;
+            player.rounds || [];
+
+
+
+        if(rounds.length === 0) {
+
+            return null;
+
+        }
 
 
 
@@ -68,11 +72,19 @@ window.Impact = {
 
 
 
+        const currentHandicap =
+
+            WHS.calculateHandicapIndex(
+                rounds
+            );
+
+
+
         const previousRounds =
 
             rounds.slice(
                 0,
-                rounds.length - 1
+                -1
             );
 
 
@@ -85,47 +97,91 @@ window.Impact = {
 
 
 
-        const currentHandicap =
+        const removed =
 
-            WHS.calculateHandicapIndex(
+            this.findRemovedRound(
+                previousRounds,
                 rounds
             );
 
 
 
+        let result = "No Change";
+
+        let reason =
+
+            "Latest round did not replace a counting round. Your Best 8 of 20 remained unchanged.";
+
+
+
         if(
-            previousHandicap === null ||
-            currentHandicap === null
+            currentHandicap < previousHandicap
         ) {
 
-            return null;
+
+            result =
+
+                "Improved by " +
+
+                (
+                    previousHandicap -
+                    currentHandicap
+                )
+                .toFixed(1);
+
+
+
+            reason =
+
+                removed
+
+                ?
+
+                "Latest round replaced a higher differential."
+
+                :
+
+                "Latest round improved your counting scores.";
+
 
         }
 
 
 
-        const countingBefore =
+        else if(
 
-            WHS.identifyCountingRounds(
-                previousRounds
-            );
+            currentHandicap >
+            previousHandicap
 
-
-
-        const countingAfter =
-
-            WHS.identifyCountingRounds(
-                rounds
-            );
+        ) {
 
 
+            result =
 
-        const removed =
+                "Increased by " +
 
-            this.findRemovedRound(
-                countingBefore,
-                countingAfter
-            );
+                (
+                    currentHandicap -
+                    previousHandicap
+                )
+                .toFixed(1);
+
+
+
+            reason =
+
+                removed
+
+                ?
+
+                "A previous strong counting round was replaced by a higher differential."
+
+                :
+
+                "Counting round averages increased.";
+
+        }
+
 
 
 
@@ -137,10 +193,14 @@ window.Impact = {
                 player.name,
 
 
-            previousHandicap,
+            previousHandicap:
+
+                previousHandicap,
 
 
-            currentHandicap,
+            currentHandicap:
+
+                currentHandicap,
 
 
             change:
@@ -152,7 +212,13 @@ window.Impact = {
             latest,
 
 
-            removed
+            removed,
+
+
+            result,
+
+
+            reason
 
 
 
@@ -166,7 +232,7 @@ window.Impact = {
 
 
     /* ================================
-       Find Replaced Round
+       Find Removed Round
     ================================= */
 
 
@@ -174,6 +240,26 @@ window.Impact = {
         before,
         after
     ) {
+
+
+        if(
+            !before ||
+            !after
+        ) {
+
+            return null;
+
+        }
+
+
+
+        const beforeDates =
+
+            before.map(
+                r =>
+                r.date
+            );
+
 
 
         const afterDates =
@@ -185,21 +271,31 @@ window.Impact = {
 
 
 
-        return (
+        const removed =
 
-            before.find(
+            beforeDates.filter(
 
-                round =>
+                date =>
+                !afterDates.includes(date)
 
-                !afterDates.includes(
-                    round.date
-                )
+            );
 
-            )
 
-            ||
 
-            null
+        if(
+            removed.length === 0
+        ) {
+
+            return null;
+
+        }
+
+
+
+        return before.find(
+
+            round =>
+            round.date === removed[0]
 
         );
 
@@ -228,6 +324,10 @@ window.Impact = {
 
         if(!container) {
 
+            console.warn(
+                "Impact results container missing."
+            );
+
             return;
 
         }
@@ -236,21 +336,26 @@ window.Impact = {
 
         let html = `
 
+
         <div class="card">
+
 
         <h2>
             Latest Round Impact
         </h2>
+
+
 
         `;
 
 
 
         Object.values(players)
+
         .forEach(player => {
 
 
-            const result =
+            const impact =
 
                 this.analyzePlayer(
                     player
@@ -258,25 +363,11 @@ window.Impact = {
 
 
 
-            if(!result) {
+            if(!impact) {
 
                 return;
 
             }
-
-
-
-            const direction =
-
-                result.change < 0
-
-                ? "↓ Improved"
-
-                : result.change > 0
-
-                ? "↑ Increased"
-
-                : "No Change";
 
 
 
@@ -287,8 +378,9 @@ window.Impact = {
 
 
             <h3>
-                ${result.player}
+                ${player.name}
             </h3>
+
 
 
             <p>
@@ -296,12 +388,17 @@ window.Impact = {
                 Previous Handicap:
 
                 <strong>
-                ${Utils.formatHandicap(
-                    result.previousHandicap
-                )}
+
+                ${impact.previousHandicap
+                    ?
+                    impact.previousHandicap.toFixed(1)
+                    :
+                    "--"}
+
                 </strong>
 
             </p>
+
 
 
             <p>
@@ -309,9 +406,9 @@ window.Impact = {
                 Current Handicap:
 
                 <strong>
-                ${Utils.formatHandicap(
-                    result.currentHandicap
-                )}
+
+                ${impact.currentHandicap.toFixed(1)}
+
                 </strong>
 
             </p>
@@ -323,8 +420,22 @@ window.Impact = {
                 Result:
 
                 <strong>
-                ${direction}
+
+                ${impact.result}
+
                 </strong>
+
+            </p>
+
+
+
+            <p>
+
+                Reason:
+
+                <br>
+
+                ${impact.reason}
 
             </p>
 
@@ -337,54 +448,20 @@ window.Impact = {
                 <br>
 
                 Score:
-                ${result.latest.score}
+                ${impact.latest.score}
 
                 <br>
 
                 Differential:
-                ${Utils.formatDifferential(
-                    result.latest.differential
-                )}
+                ${impact.latest.differential?.toFixed(1)
+                    || "--"}
 
             </p>
 
 
 
-            ${
-                result.removed
-
-                ?
-
-                `
-
-                <p>
-
-                Replaced Counting Round:
-
-                <br>
-
-                Score:
-                ${result.removed.score}
-
-                <br>
-
-                Differential:
-                ${Utils.formatDifferential(
-                    result.removed.differential
-                )}
-
-                </p>
-
-                `
-
-                :
-
-                ""
-
-            }
-
-
             `;
+
 
 
         });
@@ -403,6 +480,7 @@ window.Impact = {
 
 
     }
+
 
 
 };
