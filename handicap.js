@@ -45,20 +45,7 @@ window.Handicap = {
 
 
                     averageDifferential:
-                        0,
-
-
-                    targetHandicap:
-
-                        round.player === "Mike"
-
-                            ? 10
-
-                            : round.player === "Johnny"
-
-                                ? 15
-
-                                : null
+                        0
 
 
 
@@ -95,8 +82,6 @@ window.Handicap = {
 
 
     },
-
-
 
 
 
@@ -155,53 +140,34 @@ window.Handicap = {
         });
 
 
-
-        player.rounds =
-
-            WHS.identifyCountingRounds(
-                player.rounds
-            );
-
-
-
-        const validDifferentials =
-
-            rounds.filter(
-
-                r =>
-                r.differential !== null
-
-            );
-
+player.rounds =
+    WHS.identifyCountingRounds(
+        player.rounds
+    );
 
 
         player.averageDifferential =
 
-            validDifferentials.length
+            rounds
 
-                ?
+            .filter(
+                r =>
+                r.differential !== null
+            )
 
+            .reduce(
 
-                validDifferentials.reduce(
+                (total,r)=>
 
-                    (total,r)=>
+                    total + r.differential,
 
-                        total + r.differential,
+                0
 
-                    0
+            )
 
-                )
+            /
 
-                /
-
-                validDifferentials.length
-
-
-                :
-
-                0;
-
-
+            rounds.length;
 
 
 
