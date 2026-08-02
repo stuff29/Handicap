@@ -3,6 +3,7 @@
 <head>
 
 <meta charset="UTF-8">
+
 <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0">
@@ -13,128 +14,217 @@
 
 </head>
 
+
 <body>
+
 
 <header class="topbar">
 
-    <div class="logo">
+<div class="logo">
 
-        <h1>Golf Tracker v3</h1>
+<h1>
+Golf Tracker v3
+</h1>
 
-        <span class="subtitle">
-            Golf Canada Handicap Tracker
-        </span>
+<span class="subtitle">
+Golf Canada Handicap Tracker
+</span>
 
-    </div>
+</div>
 
-    <div class="header-right">
 
-        <button id="refreshBtn">
-            Refresh Data
-        </button>
+<div class="header-right">
 
-    </div>
+<button id="refreshBtn">
+Refresh Data
+</button>
+
+</div>
 
 </header>
 
+
+
+
 <nav class="main-nav">
+
 
 <button data-page="dashboard" class="nav-btn active">
 Dashboard
 </button>
 
+
 <button data-page="history" class="nav-btn">
 Round History
 </button>
+
 
 <button data-page="analysis" class="nav-btn">
 Analysis
 </button>
 
+
 <button data-page="solver" class="nav-btn">
 Solver
 </button>
+
 
 <button data-page="timemachine" class="nav-btn">
 Time Machine
 </button>
 
+
 <button data-page="charts" class="nav-btn">
 Charts
 </button>
 
+
 </nav>
 
+
+
+
+
 <main id="app">
+
+
 
 <section
 id="dashboard"
 class="page active">
 
+
 <div class="player-grid">
+
+
 
 <div class="player-card">
 
-<h2>Mike</h2>
+<h2>
+Mike
+</h2>
 
-<div class="bigHandicap"
+
+<div
+class="bigHandicap"
 id="mikeHandicap">
+
 --
+
 </div>
+
 
 <div id="mikeSummary"></div>
 
+
 </div>
+
+
+
+
 
 <div class="player-card">
 
-<h2>Johnny</h2>
+<h2>
+Johnny
+</h2>
 
-<div class="bigHandicap"
+
+<div
+class="bigHandicap"
 id="johnnyHandicap">
+
 --
+
 </div>
+
 
 <div id="johnnySummary"></div>
 
-</div>
 
 </div>
+
+
+
+</div>
+
+
+
+
 
 <div
 id="dashboardStats"
 class="dashboard-grid">
+
 </div>
 
+
+
 </section>
+
+
+
+
+
+
 
 <section
 id="history"
 class="page">
 
-<h2>Round History</h2>
+
+<h2>
+Round History
+</h2>
+
 
 <div id="historyTable"></div>
 
+
 </section>
+
+
+
+
+
+
+
 
 <section
 id="analysis"
 class="page">
 
-<h2>Handicap Analysis</h2>
+
+<h2>
+Handicap Analysis
+</h2>
+
 
 <div id="analysisContainer"></div>
 
+
 </section>
+
+
+
+
+
+
+
 
 <section
 id="solver"
 class="page">
 
-<h2>Target Handicap Solver</h2>
+
+<h2>
+Target Handicap Solver
+</h2>
+
+
 
 <div class="solver-controls">
+
 
 <label>
 
@@ -142,13 +232,20 @@ Player
 
 <select id="solverPlayer">
 
-<option>Mike</option>
+<option>
+Mike
+</option>
 
-<option>Johnny</option>
+<option>
+Johnny
+</option>
 
 </select>
 
 </label>
+
+
+
 
 <label>
 
@@ -161,25 +258,45 @@ id="targetHandicap">
 
 </label>
 
+
+
+
 <button id="runSolver">
 
 Calculate
 
 </button>
 
+
 </div>
+
+
 
 <div id="solverResults"></div>
 
+
 </section>
+
+
+
+
+
+
+
 
 <section
 id="timemachine"
 class="page">
 
-<h2>Time Machine</h2>
+
+<h2>
+Time Machine
+</h2>
+
+
 
 <div class="time-controls">
+
 
 <button id="previousRound">
 
@@ -187,9 +304,15 @@ class="page">
 
 </button>
 
+
+
 <span id="timeRoundLabel">
+
 Round
+
 </span>
+
+
 
 <button id="nextRound">
 
@@ -197,27 +320,75 @@ Round
 
 </button>
 
+
+
 </div>
+
+
 
 <div id="timeMachineResults"></div>
 
+
+
 </section>
+
+
+
+
+
+
+
 
 <section
 id="charts"
 class="page">
 
-<h2>Trend Charts</h2>
+
+<h2>
+Handicap Trend Charts
+</h2>
+
+
+
+<div class="card">
+
+
+<button onclick="Charts.render(GolfTracker.players.Mike)">
+Mike
+</button>
+
+
+<button onclick="Charts.render(GolfTracker.players.Johnny)">
+Johnny
+</button>
+
+
 
 <canvas
-id="trendChart"
+id="handicapChart"
 width="1200"
 height="500">
 </canvas>
 
+
+
+</div>
+
+
+
 </section>
 
+
+
+
+
+
 </main>
+
+
+
+
+
 
 <div
 id="loading"
@@ -226,6 +397,10 @@ class="loading hidden">
 Loading...
 
 </div>
+
+
+
+
 
 <script src="config.js"></script>
 <script src="utils.js"></script>
@@ -251,4 +426,5 @@ Loading...
 
 
 </body>
+
 </html>
