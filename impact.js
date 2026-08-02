@@ -1,8 +1,7 @@
 /* ==========================================
    Golf Tracker v3
    Round Impact Analyzer
-   Deliverable 34C
-   Raw Round Comparison Engine
+   WHS Best 8 Comparison Version
    ========================================== */
 
 "use strict";
@@ -16,50 +15,31 @@ window.Impact = {
     rounds:[],
 
 
-    /* ================================
-       Initialize
-    ================================= */
-
     initialize(players, rounds){
 
         this.players = players || {};
-
         this.rounds = rounds || [];
 
     },
 
 
 
-
-
-    /* ================================
-       Analyze Player
-    ================================= */
-
     analyzePlayer(player){
 
 
-        if(!player){
+        if(!player || !player.rounds){
 
             return null;
 
         }
 
 
-
-        const allRounds =
-
-            this.rounds.filter(
-
-                round =>
-
-                round.player === player.name
-
-            );
+        const rounds =
+            player.rounds;
 
 
 
-        if(allRounds.length === 0){
+        if(rounds.length < 2){
 
             return null;
 
@@ -68,16 +48,12 @@ window.Impact = {
 
 
         const latest =
-
-            allRounds[
-                allRounds.length - 1
-            ];
+            rounds[rounds.length - 1];
 
 
 
-        const previousRounds =
-
-            allRounds.slice(
+        const previous =
+            rounds.slice(
                 0,
                 -1
             );
@@ -85,58 +61,57 @@ window.Impact = {
 
 
         const currentHandicap =
-
             WHS.calculateHandicapIndex(
-
-                allRounds
-
+                rounds
             );
 
 
 
         const previousHandicap =
-
             WHS.calculateHandicapIndex(
-
-                previousRounds
-
+                previous
             );
 
 
 
-        const removed =
-
-            this.findRemovedRound(
-
-                previousRounds,
-
-                allRounds
-
+        const currentCounting =
+            this.getCountingDifferentials(
+                rounds
             );
 
 
 
-        let result =
+        const previousCounting =
+            this.getCountingDifferentials(
+                previous
+            );
+
+
+
+        const latestDifferential =
+            WHS.calculateDifferential(
+                latest
+            );
+
+
+
+        let impact =
             "No Change";
 
 
-
         let reason =
-
-            "Latest round did not change your Best 8 of 20.";
-
+            "Latest round did not affect your Best 8 of 20.";
 
 
 
         if(
-            currentHandicap < previousHandicap
+            currentHandicap <
+            previousHandicap
         ){
 
 
-            result =
-
+            impact =
                 "Improved by " +
-
                 (
                     previousHandicap -
                     currentHandicap
@@ -145,41 +120,37 @@ window.Impact = {
 
 
 
-            if(removed){
+            const removed =
+                this.findDifference(
+                    previousCounting,
+                    currentCounting
+                );
 
 
-                reason =
 
-                "Your latest round entered your Best 8 of 20 and replaced a higher differential.";
+            reason =
+                removed
 
+                ?
 
-            }
+                `New round replaced a ${removed.toFixed(1)} differential.`
 
-            else{
+                :
 
-
-                reason =
-
-                "Your latest round improved your counting scores.";
-
-
-            }
-
+                "Latest round improved your counting scores.";
 
         }
 
 
 
-
         else if(
-            currentHandicap > previousHandicap
+            currentHandicap >
+            previousHandicap
         ){
 
 
-            result =
-
+            impact =
                 "Increased by " +
-
                 (
                     currentHandicap -
                     previousHandicap
@@ -188,30 +159,28 @@ window.Impact = {
 
 
 
-            if(removed){
-
-
-                reason =
-
-                "Your latest round replaced a stronger counting round.";
-
-
-            }
-
-            else{
-
-
-                reason =
-
-                "Your counting average increased.";
-
-
-            }
-
+            reason =
+                "A previous counting score was replaced by a higher differential.";
 
         }
 
 
+
+        else{
+
+
+            if(
+                currentCounting.includes(
+                    latestDifferential
+                )
+            ){
+
+                reason =
+                "Latest round counted but did not change the Best 8 average.";
+
+            }
+
+        }
 
 
 
@@ -219,32 +188,40 @@ window.Impact = {
 
 
             player:
-
                 player.name,
 
 
             previousHandicap,
 
-
             currentHandicap,
 
 
             change:
-
                 currentHandicap -
                 previousHandicap,
 
 
-            latest,
+            latest:{
 
 
-            removed,
+                ...latest,
+
+                differential:
+                    latestDifferential
 
 
-            result,
+            },
+
+
+            counting:
+                currentCounting,
+
+
+            impact,
 
 
             reason
+
 
 
         };
@@ -255,175 +232,79 @@ window.Impact = {
 
 
 
-
-    /* ================================
-       Find Replaced Counting Round
-    ================================= */
+    getCountingDifferentials(rounds){
 
 
-    findRemovedRound(before, after){
+        return rounds
 
+            .map(r=>({
 
+                differential:
+                WHS.calculateDifferential(r)
 
-        const beforeCounting =
+            }))
 
-            this.getCountingRounds(
-
-                before
-
-            );
-
-
-
-        const afterCounting =
-
-            this.getCountingRounds(
-
-                after
-
-            );
-
-
-
-        const afterKeys =
-
-            afterCounting.map(
-
-                round =>
-
-                this.roundKey(round)
-
-            );
-
-
-
-        return (
-
-            beforeCounting.find(
-
-                round =>
-
-                !afterKeys.includes(
-
-                    this.roundKey(round)
-
-                )
-
+            .sort(
+                (a,b)=>
+                a.differential -
+                b.differential
             )
 
-            ||
+            .slice(0,8)
 
-            null
-
-        );
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Get WHS Counting Rounds
-    ================================= */
-
-
-    getCountingRounds(rounds){
-
-
-        const prepared =
-
-            rounds.map(
-
-                round => ({
-
-
-                    ...round,
-
-
-                    differential:
-
-                    WHS.calculateDifferential(
-
-                        round
-
-                    )
-
-
-                })
-
+            .map(
+                r=>
+                Number(
+                    r.differential.toFixed(1)
+                )
             );
 
 
+    },
 
-        return WHS.identifyCountingRounds(
 
-            prepared
 
-        );
+
+    findDifference(before, after){
+
+
+        for(
+            let value of before
+        ){
+
+            if(
+                !after.includes(value)
+            ){
+
+                return value;
+
+            }
+
+        }
+
+
+        return null;
 
 
     },
 
 
 
-
-
-    /* ================================
-       Unique Round Key
-    ================================= */
-
-
-    roundKey(round){
-
-
-        return [
-
-            round.player,
-
-            round.date,
-
-            round.score,
-
-            Number(
-                round.differential
-            ).toFixed(1)
-
-
-        ].join("|");
-
-
-    },
-
-
-
-
-
-    /* ================================
-       Render
-    ================================= */
 
 
     render(players){
 
 
         const container =
-
             document.getElementById(
-
                 "impactResults"
-
             );
-
 
 
         if(!container){
 
             console.warn(
-
                 "Impact results container missing."
-
             );
 
             return;
@@ -449,21 +330,17 @@ window.Impact = {
 
         Object.values(players)
 
-        .forEach(player => {
+        .forEach(player=>{
 
 
-
-            const impact =
-
+            const data =
                 this.analyzePlayer(
-
                     player
-
                 );
 
 
 
-            if(!impact){
+            if(!data){
 
                 return;
 
@@ -478,158 +355,57 @@ window.Impact = {
 
 
             <h3>
-            ${impact.player}
+            ${data.player}
             </h3>
 
 
-
             <p>
-
             Previous Handicap:
-
             <strong>
-
-            ${
-                impact.previousHandicap !== null
-
-                ?
-
-                impact.previousHandicap.toFixed(1)
-
-                :
-
-                "--"
-
-            }
-
+            ${data.previousHandicap.toFixed(1)}
             </strong>
-
             </p>
 
 
-
             <p>
-
             Current Handicap:
-
             <strong>
-
-            ${impact.currentHandicap.toFixed(1)}
-
+            ${data.currentHandicap.toFixed(1)}
             </strong>
-
             </p>
 
 
-
             <p>
-
             Result:
-
             <strong>
-
-            ${impact.result}
-
+            ${data.impact}
             </strong>
-
             </p>
 
 
-
             <p>
-
             Reason:
-
             <br>
-
-            ${impact.reason}
-
+            ${data.reason}
             </p>
 
 
-
             <p>
-
             Latest Round:
-
             <br>
-
-            Date:
-
-            ${impact.latest.date}
-
-            <br>
-
             Score:
-
-            ${impact.latest.score}
+            ${data.latest.score}
 
             <br>
 
             Differential:
-
-            ${
-                impact.latest.differential
-
-                ?
-
-                impact.latest.differential.toFixed(1)
-
-                :
-
-                WHS.calculateDifferential(
-                    impact.latest
-                ).toFixed(1)
-
-            }
-
+            ${data.latest.differential.toFixed(1)}
 
             </p>
 
 
 
-            ${
-                impact.removed
-
-                ?
-
-                `
-
-                <p>
-
-                <strong>
-                Replaced Round:
-                </strong>
-
-                <br><br>
-
-                Date:
-                ${impact.removed.date}
-
-                <br>
-
-                Score:
-                ${impact.removed.score}
-
-                <br>
-
-                Differential:
-                ${impact.removed.differential.toFixed(1)}
-
-                </p>
-
-                `
-
-                :
-
-                ""
-
-            }
-
-
-
             `;
-
 
 
         });
@@ -644,7 +420,8 @@ window.Impact = {
 
 
 
-        container.innerHTML = html;
+        container.innerHTML =
+            html;
 
 
     }
