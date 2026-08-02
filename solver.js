@@ -1,6 +1,7 @@
 /* ==========================================
    Golf Tracker v3
-   WHS 5 Round Handicap Projection Solver
+   WHS 5 Round Handicap Goal Solver
+   Corrected Projection Engine
    ========================================== */
 
 "use strict";
@@ -12,7 +13,6 @@ window.Solver = {
     players:{},
 
     rounds:[],
-
 
 
     /* ================================
@@ -41,7 +41,7 @@ window.Solver = {
 
 
     /* ================================
-       Attach Events
+       UI Events
     ================================= */
 
 
@@ -97,7 +97,7 @@ window.Solver = {
 
 
     /* ================================
-       Render Player Result
+       Render
     ================================= */
 
 
@@ -123,7 +123,6 @@ window.Solver = {
 
         container.innerHTML = `
 
-
         <div class="card">
 
         ${this.buildGoalCard(
@@ -133,7 +132,6 @@ window.Solver = {
 
         </div>
 
-
         `;
 
 
@@ -141,11 +139,6 @@ window.Solver = {
 
 
 
-
-
-    /* ================================
-       Dashboard Goals
-    ================================= */
 
 
     renderGoals(){
@@ -167,12 +160,10 @@ window.Solver = {
 
         container.innerHTML = `
 
-
         <div class="card">
 
-
         <h2>
-            Handicap Goal Solver
+        Handicap Goal Solver
         </h2>
 
 
@@ -187,9 +178,7 @@ window.Solver = {
             15
         )}
 
-
         </div>
-
 
         `;
 
@@ -198,11 +187,6 @@ window.Solver = {
 
 
 
-
-
-    /* ================================
-       Build Result Card
-    ================================= */
 
 
     buildGoalCard(
@@ -224,7 +208,7 @@ window.Solver = {
 
 
 
-        const projection =
+        const result =
             this.calculateProjection(
                 player,
                 target
@@ -232,7 +216,7 @@ window.Solver = {
 
 
 
-        if(!projection){
+        if(!result){
 
             return `
 
@@ -257,7 +241,7 @@ window.Solver = {
 
 
         <h3>
-            ${playerName}
+        ${playerName}
         </h3>
 
 
@@ -266,7 +250,7 @@ window.Solver = {
         Current Handicap:
 
         <strong>
-        ${projection.current.toFixed(1)}
+        ${result.current.toFixed(1)}
         </strong>
 
         </p>
@@ -286,13 +270,13 @@ window.Solver = {
 
         <p>
         Required Average Differential
-        Over Next 5 Rounds:
+        (next 5 rounds):
 
         <br>
 
         <strong style="font-size:1.4em">
 
-        ${projection.requiredDifferential.toFixed(1)}
+        ${result.requiredDifferential.toFixed(1)}
 
         </strong>
 
@@ -301,13 +285,13 @@ window.Solver = {
 
 
         <p>
-        Estimated Average Score:
+        Approximate Average Score:
 
         <br>
 
         <strong style="font-size:1.5em">
 
-        ${projection.averageScore}
+        ${result.averageScore}
 
         </strong>
 
@@ -316,16 +300,11 @@ window.Solver = {
 
 
         <p>
-
         <small>
-
-        Projection assumes your next 5 rounds
-        replace some existing counting scores.
-        Actual WHS movement depends on which
-        rounds drop out of your Best 8.
-
+        Projection assumes your next five
+        rounds replace existing rounds in
+        your WHS record.
         </small>
-
         </p>
 
 
@@ -339,7 +318,7 @@ window.Solver = {
 
 
     /* ================================
-       WHS Projection Engine
+       Projection
     ================================= */
 
 
@@ -373,57 +352,46 @@ window.Solver = {
             current <= target
         ){
 
-
             return {
 
                 current,
 
-                requiredDifferential:
-                    0,
+                requiredDifferential:0,
 
                 averageScore:
-                    "Already achieved"
+                "Target reached"
 
             };
-
 
         }
 
 
 
+        let best =
+            null;
+
+
+
         /*
-          Binary search for average
-          differential needed over 5 rounds
+          Test possible 5-round averages.
+
+          Lower differential = better.
+          We find the highest number
+          that still reaches target.
         */
 
 
-        let low = 0;
-
-        let high = 40;
-
-        let answer = high;
-
-
-
         for(
-            let i=0;
-            i<40;
-            i++
+            let diff = 25;
+            diff >= 5;
+            diff -= .1
         ){
 
 
-            const mid =
-                (
-                    low +
-                    high
-                ) / 2;
-
-
-
             const simulated =
-                this.simulateFutureRounds(
+                this.simulateFiveRounds(
                     rounds,
-                    mid
+                    diff
                 );
 
 
@@ -439,18 +407,23 @@ window.Solver = {
                 handicap <= target
             ){
 
-                answer = mid;
+                best =
+                Number(
+                    diff.toFixed(1)
+                );
 
-                high = mid;
-
-            }
-
-            else{
-
-                low = mid;
+                break;
 
             }
 
+
+        }
+
+
+
+        if(!best){
+
+            best = 5;
 
         }
 
@@ -463,16 +436,15 @@ window.Solver = {
 
 
             requiredDifferential:
-                answer,
+            best,
 
 
 
             averageScore:
-
-                this.convertDifferentialToScore(
-                    answer,
-                    rounds
-                )
+            this.convertDifferentialToScore(
+                best,
+                rounds
+            )
 
 
         };
@@ -485,19 +457,19 @@ window.Solver = {
 
 
     /* ================================
-       Simulate Five Future Rounds
+       Simulate Future Five Rounds
     ================================= */
 
 
-    simulateFutureRounds(
+    simulateFiveRounds(
         rounds,
         differential
     ){
 
 
-        const simulated =
+        let simulated =
             rounds.map(
-                r => ({...r})
+                r=>({...r})
             );
 
 
@@ -523,20 +495,36 @@ window.Solver = {
 
 
                 date:
-                "Future",
+                "Future-" + i,
+
+
+                differential,
 
 
                 score:
                 this.convertDifferentialToScore(
                     differential,
                     rounds
-                ),
-
-
-                differential
+                )
 
 
             });
+
+
+
+            /*
+              WHS uses the most recent
+              20 rounds.
+            */
+
+
+            if(
+                simulated.length > 20
+            ){
+
+                simulated.shift();
+
+            }
 
 
         }
@@ -553,7 +541,7 @@ window.Solver = {
 
 
     /* ================================
-       Differential To Score
+       Differential Conversion
     ================================= */
 
 
@@ -580,17 +568,13 @@ window.Solver = {
 
         return Math.round(
 
+            latest.rating +
+
             (
                 differential *
-                (
-                    113 /
-                    latest.slope
-                )
+                latest.slope /
+                113
             )
-
-            +
-
-            latest.rating
 
         );
 
@@ -606,12 +590,10 @@ window.Solver = {
         target
     ){
 
-
         this.renderSingle(
             player,
             target
         );
-
 
     }
 
