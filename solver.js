@@ -1,6 +1,7 @@
 /* ==========================================
    Golf Tracker v3
    Handicap Target Solver
+   5 Round Average Projection
    ========================================== */
 
 "use strict";
@@ -9,23 +10,30 @@
 window.Solver = {
 
 
-    players: {},
+    players:{},
 
-    rounds: [],
+    rounds:[],
 
 
 
     /* ================================
-       Initialize Solver
+       Initialize
     ================================= */
 
-    initialize(players, rounds) {
 
-        this.players = players || {};
+    initialize(players, rounds){
 
-        this.rounds = rounds || [];
+
+        this.players =
+            players || {};
+
+
+        this.rounds =
+            rounds || {};
+
 
         this.attachEvents();
+
 
     },
 
@@ -34,10 +42,11 @@ window.Solver = {
 
 
     /* ================================
-       Attach UI Events
+       Attach Events
     ================================= */
 
-    attachEvents() {
+
+    attachEvents(){
 
 
         const button =
@@ -46,11 +55,12 @@ window.Solver = {
             );
 
 
-        if(!button) {
+        if(!button){
 
             return;
 
         }
+
 
 
         button.onclick = () => {
@@ -62,12 +72,14 @@ window.Solver = {
                 ).value;
 
 
+
             const target =
                 Number(
                     document.getElementById(
                         "targetHandicap"
                     ).value
                 );
+
 
 
             this.renderSingle(
@@ -86,10 +98,11 @@ window.Solver = {
 
 
     /* ================================
-       Dashboard Solver
+       Dashboard Goals
     ================================= */
 
-    renderGoals() {
+
+    renderGoals(){
 
 
         const container =
@@ -98,50 +111,37 @@ window.Solver = {
             );
 
 
-        if(!container) {
+        if(!container){
 
             return;
 
         }
 
 
-        let html = `
+
+        container.innerHTML = `
+
+            <div class="card">
+
+                <h2>
+                    Handicap Goal Solver
+                </h2>
 
 
-        <div class="card">
+                ${this.buildGoalCard(
+                    "Mike",
+                    10
+                )}
 
 
-            <h2>
-                Handicap Goal Solver
-            </h2>
+                ${this.buildGoalCard(
+                    "Johnny",
+                    15
+                )}
 
-
-        `;
-
-
-
-        html += this.buildGoalCard(
-            "Mike",
-            10
-        );
-
-
-        html += this.buildGoalCard(
-            "Johnny",
-            15
-        );
-
-
-
-        html += `
-
-        </div>
+            </div>
 
         `;
-
-
-
-        container.innerHTML = html;
 
 
     },
@@ -150,10 +150,15 @@ window.Solver = {
 
 
 
+    /* ================================
+       Build Goal Card
+    ================================= */
+
+
     buildGoalCard(
         playerName,
         target
-    ) {
+    ){
 
 
         const player =
@@ -161,7 +166,7 @@ window.Solver = {
 
 
 
-        if(!player) {
+        if(!player){
 
             return "";
 
@@ -169,19 +174,17 @@ window.Solver = {
 
 
 
-        const analysis =
-            this.calculateRequiredDifferential(
+        const result =
+            this.calculateProjection(
                 player,
                 target
             );
 
 
 
-        if(!analysis) {
-
+        if(!result){
 
             return `
-
 
             <hr>
 
@@ -189,14 +192,11 @@ window.Solver = {
                 ${playerName}
             </h3>
 
-
             <p>
-                Unable to calculate projection.
+                Not enough rounds available.
             </p>
 
-
             `;
-
 
         }
 
@@ -215,25 +215,30 @@ window.Solver = {
 
 
         <p>
-
             Current Handicap:
-
             <strong>
-                ${Utils.formatHandicap(
-                    analysis.current
-                )}
+            ${result.current.toFixed(1)}
             </strong>
-
         </p>
 
 
 
         <p>
-
             Target Handicap:
+            <strong>
+            ${target.toFixed(1)}
+            </strong>
+        </p>
+
+
+
+        <p>
+            Required Average Differential
+            (next 5 rounds):
+            <br>
 
             <strong>
-                ${target.toFixed(1)}
+            ${result.requiredDifferential.toFixed(1)}
             </strong>
 
         </p>
@@ -241,20 +246,25 @@ window.Solver = {
 
 
         <p>
-
-            Average score needed over
-            next 5 rounds:
-
+            Approximate Average Score:
             <br>
 
             <strong style="font-size:1.5em">
 
-                ${analysis.estimatedScore}
+            ${result.averageScore}
 
             </strong>
 
         </p>
 
+
+
+        <p>
+            <small>
+            Actual handicap movement depends on
+            which existing counting rounds are replaced.
+            </small>
+        </p>
 
 
         `;
@@ -270,10 +280,11 @@ window.Solver = {
        Single Player Solver
     ================================= */
 
+
     renderSingle(
-        player,
+        playerName,
         target
-    ) {
+    ){
 
 
         const container =
@@ -282,40 +293,26 @@ window.Solver = {
             );
 
 
-        if(!container) {
+        if(!container){
 
             return;
 
         }
 
 
-        container.innerHTML =
-            this.buildGoalCard(
-                player,
-                target
-            );
 
+        container.innerHTML = `
 
-    },
+        <div class="card">
 
-
-
-
-
-    /* ================================
-       Backwards Compatible Solve
-    ================================= */
-
-    solve(
-        playerName,
-        target
-    ) {
-
-
-        this.renderSingle(
+        ${this.buildGoalCard(
             playerName,
             target
-        );
+        )}
+
+        </div>
+
+        `;
 
 
     },
@@ -325,13 +322,14 @@ window.Solver = {
 
 
     /* ================================
-       Calculate Needed Differential
+       Projection Calculation
     ================================= */
 
-    calculateRequiredDifferential(
+
+    calculateProjection(
         player,
         target
-    ) {
+    ){
 
 
         const rounds =
@@ -339,25 +337,7 @@ window.Solver = {
 
 
 
-        const differentials =
-
-            rounds
-
-            .map(
-                round =>
-                round.differential
-            )
-
-            .filter(
-                value =>
-                value !== null
-            );
-
-
-
-        if(
-            differentials.length < 3
-        ) {
+        if(rounds.length < 5){
 
             return null;
 
@@ -366,36 +346,99 @@ window.Solver = {
 
 
         const current =
-
             WHS.calculateHandicapIndex(
                 rounds
             );
 
 
 
-        const improvement =
+        if(
+            current === null ||
+            current <= target
+        ){
 
-            current -
-            target;
+            return {
+
+                current,
+
+                requiredDifferential:
+                    target,
+
+                averageScore:
+                    "--"
+
+            };
+
+        }
 
 
 
-        const requiredAverage =
+        /*
+          Estimate required differential.
 
+          WHS handicap is based on best
+          8 of 20, so we use the current
+          counting differential average and
+          project the improvement required.
+        */
+
+
+        const differentials =
+            rounds
+
+            .map(
+                round =>
+                WHS.calculateDifferential(
+                    round
+                )
+            )
+
+            .filter(
+                x =>
+                Number.isFinite(x)
+            );
+
+
+
+        differentials.sort(
+            (a,b)=>a-b
+        );
+
+
+
+        const counting =
+            differentials.slice(
+                0,
+                Math.min(
+                    8,
+                    differentials.length
+                )
+            );
+
+
+
+        const currentAverage =
+            this.average(
+                counting
+            );
+
+
+
+        const requiredDifferential =
             Math.max(
 
-                0,
+                target,
 
-                Utils.round(
-
-                    this.average(
-                        differentials
+                Number(
+                    (
+                    currentAverage -
+                    (
+                        current -
+                        target
                     )
-                    -
-                    improvement,
+                    )
 
-                    1
-
+                    .toFixed(1)
                 )
 
             );
@@ -408,19 +451,16 @@ window.Solver = {
             current,
 
 
-            requiredDifferential:
-                requiredAverage,
+            requiredDifferential,
 
 
-            estimatedScore:
+
+            averageScore:
 
                 this.convertDifferentialToScore(
-                    requiredAverage,
+                    requiredDifferential,
                     rounds
-                ),
-
-
-            improvement
+                )
 
 
         };
@@ -433,13 +473,14 @@ window.Solver = {
 
 
     /* ================================
-       Differential -> Score
+       Differential To Score
     ================================= */
+
 
     convertDifferentialToScore(
         differential,
         rounds
-    ) {
+    ){
 
 
         const latest =
@@ -449,9 +490,9 @@ window.Solver = {
 
 
 
-        if(!latest) {
+        if(!latest){
 
-            return null;
+            return "--";
 
         }
 
@@ -483,13 +524,14 @@ window.Solver = {
        Average
     ================================= */
 
-    average(values) {
+
+    average(values){
 
 
         if(
             !values ||
             values.length === 0
-        ) {
+        ){
 
             return 0;
 
@@ -500,8 +542,11 @@ window.Solver = {
         return (
 
             values.reduce(
-                (sum,value)=>
-                sum + value,
+                (
+                    total,
+                    value
+                ) =>
+                total + value,
                 0
             )
 
@@ -512,10 +557,30 @@ window.Solver = {
         );
 
 
+    },
+
+
+
+
+
+    /* ================================
+       Backwards Compatibility
+    ================================= */
+
+
+    solve(
+        player,
+        target
+    ){
+
+
+        this.renderSingle(
+            player,
+            target
+        );
+
+
     }
-
-
-
 
 
 };
