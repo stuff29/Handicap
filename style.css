@@ -535,9 +535,21 @@ td {
 
 tr:hover {
 
-
     background:#f7f9fc;
 
+}
+
+
+.counting.mike {
+
+    background:#e8f7ec;
+
+}
+
+
+.counting.johnny {
+
+    background:#fff7cc;
 
 }
 
