@@ -1,6 +1,7 @@
 /* ==========================================
    Golf Tracker v3
-   Handicap Trend Charts
+   Interactive Handicap Trend Charts
+   Deliverable 30
    ========================================== */
 
 "use strict";
@@ -12,6 +13,10 @@ window.Charts = {
     canvas: null,
 
     context: null,
+
+
+    currentPlayer: null,
+
 
 
     initialize() {
@@ -40,6 +45,35 @@ window.Charts = {
             this.canvas.getContext(
                 "2d"
             );
+
+
+    },
+
+
+
+
+
+    renderPlayer(playerName) {
+
+
+        if(
+            !window.GolfTracker ||
+            !GolfTracker.players[playerName]
+        ) {
+
+            return;
+
+        }
+
+
+        this.currentPlayer =
+
+            GolfTracker.players[playerName];
+
+
+        this.render(
+            this.currentPlayer
+        );
 
 
     },
@@ -85,8 +119,13 @@ window.Charts = {
 
 
             if(
+
                 handicap !== null &&
-                Number.isFinite(handicap)
+
+                Number.isFinite(
+                    handicap
+                )
+
             ) {
 
 
@@ -120,13 +159,95 @@ window.Charts = {
 
 
 
+    getStatistics(player) {
+
+
+        const history =
+
+            this.calculateHistory(
+                player
+            );
+
+
+
+        if(!history.length) {
+
+            return null;
+
+        }
+
+
+
+        const values =
+
+            history.map(
+                item =>
+                item.value
+            );
+
+
+
+        return {
+
+
+            current:
+
+                values[
+                    values.length - 1
+                ],
+
+
+
+            starting:
+
+                values[0],
+
+
+
+            low:
+
+                Math.min(
+                    ...values
+                ),
+
+
+
+            improvement:
+
+                Number(
+
+                    (
+
+                        values[0] -
+                        values[
+                            values.length - 1
+                        ]
+
+                    )
+
+                    .toFixed(1)
+
+                )
+
+
+        };
+
+
+    },
+
+
+
+
+
     render(player) {
 
 
         if(
+
             !this.canvas ||
             !this.context ||
             !player
+
         ) {
 
             return;
@@ -147,15 +268,13 @@ window.Charts = {
 
 
 
-        if(history.length < 2) {
+        if(
+            history.length < 2
+        ) {
 
             return;
 
         }
-
-
-
-        this.drawAxis();
 
 
 
@@ -191,43 +310,6 @@ window.Charts = {
 
 
 
-    drawAxis() {
-
-
-        const ctx =
-            this.context;
-
-
-        ctx.beginPath();
-
-
-        ctx.moveTo(
-            40,
-            40
-        );
-
-
-        ctx.lineTo(
-            40,
-            this.canvas.height - 40
-        );
-
-
-        ctx.lineTo(
-            this.canvas.width - 40,
-            this.canvas.height - 40
-        );
-
-
-        ctx.stroke();
-
-
-    },
-
-
-
-
-
     drawChart(history, player) {
 
 
@@ -235,15 +317,17 @@ window.Charts = {
             this.context;
 
 
-        const padding = 40;
+        const padding = 50;
 
 
         const width =
+
             this.canvas.width -
             padding * 2;
 
 
         const height =
+
             this.canvas.height -
             padding * 2;
 
@@ -261,7 +345,8 @@ window.Charts = {
         const max =
 
             Math.max(
-                ...values
+                ...values,
+                player.targetHandicap || 0
             ) + 1;
 
 
@@ -269,8 +354,29 @@ window.Charts = {
         const min =
 
             Math.min(
-                ...values
+                ...values,
+                player.targetHandicap || 0
             ) - 1;
+
+
+
+        this.drawAxis();
+
+
+
+        this.drawTargetLine(
+
+            player,
+
+            min,
+
+            max,
+
+            padding,
+
+            height
+
+        );
 
 
 
@@ -309,15 +415,19 @@ window.Charts = {
                     (
 
                         (
+
                             max -
                             item.value
+
                         )
 
                         /
 
                         (
+
                             max -
                             min
+
                         )
 
                     )
@@ -360,10 +470,41 @@ window.Charts = {
         ctx.stroke();
 
 
+    },
 
-        this.drawTargetLine(
-            player
+
+
+
+
+    drawAxis() {
+
+
+        const ctx =
+            this.context;
+
+
+        ctx.beginPath();
+
+
+        ctx.moveTo(
+            50,
+            50
         );
+
+
+        ctx.lineTo(
+            50,
+            this.canvas.height - 50
+        );
+
+
+        ctx.lineTo(
+            this.canvas.width - 50,
+            this.canvas.height - 50
+        );
+
+
+        ctx.stroke();
 
 
     },
@@ -372,7 +513,13 @@ window.Charts = {
 
 
 
-    drawTargetLine(player) {
+    drawTargetLine(
+        player,
+        min,
+        max,
+        padding,
+        height
+    ) {
 
 
         if(
@@ -385,49 +532,54 @@ window.Charts = {
         }
 
 
+
         const ctx =
             this.context;
-
-
-        const target =
-            player.targetHandicap;
 
 
 
         const y =
 
-            40 +
+            padding +
 
             (
 
-                1 -
-
                 (
 
-                    (
-                        target -
-                        0
-                    )
+                    max -
+                    player.targetHandicap
 
                 )
 
-            );
+                /
+
+                (
+
+                    max -
+                    min
+
+                )
+
+            )
+
+            *
+
+            height;
 
 
 
         ctx.beginPath();
 
 
-
         ctx.moveTo(
-            40,
+            padding,
             y
         );
 
 
         ctx.lineTo(
 
-            this.canvas.width - 40,
+            this.canvas.width - padding,
 
             y
 
@@ -438,7 +590,6 @@ window.Charts = {
 
 
     }
-
 
 
 };
