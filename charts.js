@@ -14,7 +14,6 @@ window.Charts = {
     context: null,
 
 
-
     initialize() {
 
 
@@ -57,7 +56,6 @@ window.Charts = {
             player.rounds || [];
 
 
-
         const history = [];
 
 
@@ -86,7 +84,10 @@ window.Charts = {
 
 
 
-            if(handicap !== null) {
+            if(
+                handicap !== null &&
+                Number.isFinite(handicap)
+            ) {
 
 
                 history.push({
@@ -96,7 +97,9 @@ window.Charts = {
 
 
                     value:
-                        handicap
+                        Number(
+                            handicap.toFixed(1)
+                        )
 
                 });
 
@@ -112,8 +115,6 @@ window.Charts = {
 
 
     },
-
-
 
 
 
@@ -159,7 +160,8 @@ window.Charts = {
 
 
         this.drawChart(
-            history
+            history,
+            player
         );
 
 
@@ -169,22 +171,14 @@ window.Charts = {
 
 
 
-
-
     clear() {
-
-
-        if(!this.context) {
-
-            return;
-
-        }
 
 
         this.context.clearRect(
 
             0,
             0,
+
             this.canvas.width,
             this.canvas.height
 
@@ -197,9 +191,44 @@ window.Charts = {
 
 
 
+    drawAxis() {
 
 
-    drawChart(history) {
+        const ctx =
+            this.context;
+
+
+        ctx.beginPath();
+
+
+        ctx.moveTo(
+            40,
+            40
+        );
+
+
+        ctx.lineTo(
+            40,
+            this.canvas.height - 40
+        );
+
+
+        ctx.lineTo(
+            this.canvas.width - 40,
+            this.canvas.height - 40
+        );
+
+
+        ctx.stroke();
+
+
+    },
+
+
+
+
+
+    drawChart(history, player) {
 
 
         const ctx =
@@ -261,7 +290,6 @@ window.Charts = {
                     (
 
                         index /
-
                         (
                             history.length - 1
                         )
@@ -302,19 +330,23 @@ window.Charts = {
 
                 if(index === 0) {
 
+
                     ctx.moveTo(
                         x,
                         y
                     );
 
+
                 }
 
                 else {
+
 
                     ctx.lineTo(
                         x,
                         y
                     );
+
 
                 }
 
@@ -329,22 +361,57 @@ window.Charts = {
 
 
 
+        this.drawTargetLine(
+            player
+        );
+
+
     },
 
 
 
 
 
+    drawTargetLine(player) {
 
 
-    drawAxis() {
+        if(
+            !player ||
+            player.targetHandicap === undefined
+        ) {
+
+            return;
+
+        }
 
 
         const ctx =
             this.context;
 
 
-        const padding = 40;
+        const target =
+            player.targetHandicap;
+
+
+
+        const y =
+
+            40 +
+
+            (
+
+                1 -
+
+                (
+
+                    (
+                        target -
+                        0
+                    )
+
+                )
+
+            );
 
 
 
@@ -353,28 +420,16 @@ window.Charts = {
 
 
         ctx.moveTo(
-            padding,
-            padding
+            40,
+            y
         );
 
 
         ctx.lineTo(
 
-            padding,
+            this.canvas.width - 40,
 
-            this.canvas.height -
-            padding
-
-        );
-
-
-        ctx.lineTo(
-
-            this.canvas.width -
-            padding,
-
-            this.canvas.height -
-            padding
+            y
 
         );
 
@@ -383,8 +438,6 @@ window.Charts = {
 
 
     }
-
-
 
 
 
