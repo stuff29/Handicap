@@ -2,7 +2,7 @@
 /* ==========================================
    Golf Tracker v3
    Enhanced Round History Module
-   Deliverable 38
+   Deliverable 36
    ========================================== */
 
 "use strict";
@@ -14,26 +14,23 @@ window.History = {
 
 
     /* ==========================================
-       Render
+       Render Round History
     ========================================== */
 
     render(rounds) {
 
         const container =
-            document.getElementById(
-                "historyTable"
-            );
+            document.getElementById("historyTable");
 
 
         if (!container) {
+
             return;
+
         }
 
 
-        if (
-            !rounds ||
-            rounds.length === 0
-        ) {
+        if (!rounds || rounds.length === 0) {
 
             container.innerHTML = `
                 <div class="card">
@@ -42,6 +39,7 @@ window.History = {
             `;
 
             return;
+
         }
 
 
@@ -50,9 +48,7 @@ window.History = {
 
 
         const sorted =
-            Utils.sortByDateDescending(
-                analyzed
-            );
+            Utils.sortByDateDescending(analyzed);
 
 
         container.innerHTML =
@@ -67,57 +63,33 @@ window.History = {
 
     analyzeRounds(rounds) {
 
-        /*
-         * Assign every round its original array
-         * position. This gives us a unique way
-         * to identify a round even when two
-         * rounds have the same date.
-         */
+        return rounds.map(round => {
 
-        const indexedRounds =
-            rounds.map(
-                (round, index) => {
-
-                    return {
-                        ...round,
-                        _historyIndex: index
-                    };
-
-                }
-            );
+            const differential =
+                WHS.calculateDifferential(round);
 
 
-        return indexedRounds.map(
-            round => {
+            return {
 
-                const differential =
-                    WHS.calculateDifferential(
-                        round
-                    );
+                ...round,
 
+                differential: differential,
 
-                return {
+                counting:
+                    this.isCountingRound(
+                        round,
+                        rounds
+                    ),
 
-                    ...round,
+                impact:
+                    this.getImpact(
+                        round,
+                        rounds
+                    )
 
-                    differential,
+            };
 
-                    counting:
-                        this.isCountingRound(
-                            round,
-                            indexedRounds
-                        ),
-
-                    impact:
-                        this.getImpact(
-                            round,
-                            indexedRounds
-                        )
-
-                };
-
-            }
-        );
+        });
 
     },
 
@@ -126,115 +98,61 @@ window.History = {
        Determine Counting Rounds
     ========================================== */
 
-    isCountingRound(
-        round,
-        rounds
-    ) {
-
-        /*
-         * Only consider this player's rounds.
-         */
+    isCountingRound(round, rounds) {
 
         const playerRounds =
-            rounds
-                .filter(
-                    r =>
-                        r.player ===
-                        round.player
-                )
-                .sort(
-                    (a, b) => {
-
-                        return (
-                            new Date(b.date) -
-                            new Date(a.date)
-                        );
-
-                    }
-                );
-
-
-        /*
-         * WHS uses the most recent 20 scores
-         * once a player has 20 or more scores.
-         */
-
-        const eligibleRounds =
-            playerRounds.slice(
-                0,
-                20
+            rounds.filter(
+                r =>
+                    r.player === round.player
             );
 
-
-        /*
-         * Calculate each eligible differential.
-         */
 
         const differentials =
-            eligibleRounds
-                .map(
-                    r => {
+            playerRounds
 
-                        return {
-                            round: r,
+                .map(r => ({
 
-                            differential:
-                                WHS.calculateDifferential(
-                                    r
-                                )
-                        };
+                    round: r,
 
-                    }
-                )
+                    differential:
+                        WHS.calculateDifferential(r)
+
+                }))
+
                 .filter(
-                    item => {
-
-                        return (
-                            item.differential !== null &&
-                            Number.isFinite(
-                                item.differential
-                            )
-                        );
-
-                    }
+                    x =>
+                        x.differential !== null &&
+                        Number.isFinite(x.differential)
                 )
+
                 .sort(
-                    (a, b) => {
-
-                        return (
-                            a.differential -
-                            b.differential
-                        );
-
-                    }
+                    (a, b) =>
+                        a.differential -
+                        b.differential
                 );
 
 
-        /*
-         * Select the Best 8.
-         */
-
-        const bestEight =
+        const best =
             differentials.slice(
                 0,
-                8
+                Math.min(
+                    8,
+                    differentials.length
+                )
             );
 
 
         /*
-         * Identify the actual round using its
-         * unique history index rather than date.
+         * Use date AND player to identify the round.
+         *
+         * This prevents a round belonging to another
+         * player with the same date from being selected.
          */
 
-        return bestEight.some(
-            item => {
-
-                return (
-                    item.round._historyIndex ===
-                    round._historyIndex
-                );
-
-            }
+        return best.some(
+            x =>
+                x.round.player === round.player &&
+                x.round.date === round.date
         );
 
     },
@@ -244,46 +162,32 @@ window.History = {
        Round Impact
     ========================================== */
 
-    getImpact(
-        round,
-        rounds
-    ) {
+    getImpact(round, rounds) {
 
         const playerRounds =
-            rounds
-                .filter(
-                    r =>
-                        r.player ===
-                        round.player
-                )
-                .sort(
-                    (a, b) => {
-
-                        return (
-                            new Date(a.date) -
-                            new Date(b.date)
-                        );
-
-                    }
-                );
+            rounds.filter(
+                r =>
+                    r.player === round.player
+            );
 
 
         /*
-         * Remove this exact round rather than
-         * removing every round with the same date.
+         * Remove only this specific round.
          */
 
-        const previousRounds =
+        const beforeRounds =
             playerRounds.filter(
                 r =>
-                    r._historyIndex !==
-                    round._historyIndex
+                    !(
+                        r.date === round.date &&
+                        r.player === round.player
+                    )
             );
 
 
         const before =
             WHS.calculateHandicapIndex(
-                previousRounds
+                beforeRounds
             );
 
 
@@ -347,11 +251,17 @@ window.History = {
                     <tr>
 
                         <th>Date</th>
+
                         <th>Player</th>
+
                         <th>Course</th>
+
                         <th>Score</th>
+
                         <th>Differential</th>
+
                         <th>Status</th>
+
                         <th>Impact</th>
 
                     </tr>
@@ -363,89 +273,97 @@ window.History = {
         `;
 
 
-        rounds.forEach(
-            round => {
+        rounds.forEach(round => {
 
-                const playerClass =
-                    round.player
-                        ? round.player.toLowerCase()
-                        : "";
+            /*
+             * IMPORTANT:
+             *
+             * Counting rounds receive TWO classes:
+             *
+             * counting mike
+             * counting johnny
+             *
+             * This allows CSS to give each player
+             * a different highlight colour.
+             */
 
-
-                let rowClass;
-
-
-                if (round.counting) {
-
-                    rowClass =
-                        "counting " +
-                        playerClass;
-
-                } else {
-
-                    rowClass =
-                        "non-counting " +
-                        playerClass;
-
-                }
+            let rowClass;
 
 
-                html += `
+            if (round.counting) {
 
-                    <tr class="${rowClass}">
+                rowClass =
+                    "counting " +
+                    String(round.player)
+                        .toLowerCase();
 
-                        <td>
-                            ${Utils.formatDate(
-                                round.date
-                            )}
-                        </td>
+            } else {
 
-
-                        <td>
-                            ${Utils.escapeHTML(
-                                round.player
-                            )}
-                        </td>
-
-
-                        <td>
-                            ${Utils.escapeHTML(
-                                round.course
-                            )}
-                        </td>
-
-
-                        <td>
-                            ${round.score}
-                        </td>
-
-
-                        <td>
-                            ${Utils.formatDifferential(
-                                round.differential
-                            )}
-                        </td>
-
-
-                        <td>
-                            ${
-                                round.counting
-                                    ? "Counting"
-                                    : "Non-counting"
-                            }
-                        </td>
-
-
-                        <td>
-                            ${round.impact}
-                        </td>
-
-                    </tr>
-
-                `;
+                rowClass =
+                    "non-counting " +
+                    String(round.player)
+                        .toLowerCase();
 
             }
-        );
+
+
+            html += `
+
+                <tr class="${rowClass}">
+
+                    <td>
+                        ${Utils.formatDate(
+                            round.date
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${Utils.escapeHTML(
+                            round.player
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${Utils.escapeHTML(
+                            round.course
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${round.score}
+                    </td>
+
+
+                    <td>
+                        ${Utils.formatDifferential(
+                            round.differential
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${
+                            round.counting
+                                ? "Counting"
+                                : "Non-counting"
+                        }
+                    </td>
+
+
+                    <td>
+                        ${Utils.escapeHTML(
+                            String(round.impact)
+                        )}
+                    </td>
+
+                </tr>
+
+            `;
+
+        });
 
 
         html += `
@@ -466,10 +384,7 @@ window.History = {
        Filter By Player
     ========================================== */
 
-    filterByPlayer(
-        rounds,
-        player
-    ) {
+    filterByPlayer(rounds, player) {
 
         if (
             !player ||
