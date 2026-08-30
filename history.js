@@ -36,13 +36,9 @@ window.History = {
         ) {
 
             container.innerHTML = `
-
                 <div class="card">
-
                     No rounds loaded.
-
                 </div>
-
             `;
 
             return;
@@ -72,17 +68,22 @@ window.History = {
     analyzeRounds(rounds) {
 
         /*
-         * Give every round a temporary internal
-         * index so that rounds are identified by
-         * their actual record rather than date.
+         * Assign every round its original array
+         * position. This gives us a unique way
+         * to identify a round even when two
+         * rounds have the same date.
          */
 
         const indexedRounds =
             rounds.map(
-                (round, index) => ({
-                    ...round,
-                    _historyIndex: index
-                })
+                (round, index) => {
+
+                    return {
+                        ...round,
+                        _historyIndex: index
+                    };
+
+                }
             );
 
 
@@ -131,7 +132,7 @@ window.History = {
     ) {
 
         /*
-         * Get this player's rounds only.
+         * Only consider this player's rounds.
          */
 
         const playerRounds =
@@ -142,19 +143,23 @@ window.History = {
                         round.player
                 )
                 .sort(
-                    (a, b) =>
-                        new Date(b.date) -
-                        new Date(a.date)
+                    (a, b) => {
+
+                        return (
+                            new Date(b.date) -
+                            new Date(a.date)
+                        );
+
+                    }
                 );
 
 
         /*
-         * WHS Handicap Index uses the most
-         * recent 20 scores when 20 or more
-         * scores are available.
+         * WHS uses the most recent 20 scores
+         * once a player has 20 or more scores.
          */
 
-        const recent20 =
+        const eligibleRounds =
             playerRounds.slice(
                 0,
                 20
@@ -162,73 +167,74 @@ window.History = {
 
 
         /*
-         * Calculate differentials for the
-         * eligible 20 rounds.
+         * Calculate each eligible differential.
          */
 
         const differentials =
-            recent20
-
+            eligibleRounds
                 .map(
-                    r => ({
+                    r => {
 
-                        round: r,
+                        return {
+                            round: r,
 
-                        differential:
-                            WHS.calculateDifferential(
-                                r
-                            )
+                            differential:
+                                WHS.calculateDifferential(
+                                    r
+                                )
+                        };
 
-                    })
+                    }
                 )
-
                 .filter(
-                    x =>
-                        x.differential !== null &&
-                        Number.isFinite(
-                            x.differential
-                        )
-                )
+                    item => {
 
+                        return (
+                            item.differential !== null &&
+                            Number.isFinite(
+                                item.differential
+                            )
+                        );
+
+                    }
+                )
                 .sort(
-                    (a, b) =>
-                        a.differential -
-                        b.differential
+                    (a, b) => {
+
+                        return (
+                            a.differential -
+                            b.differential
+                        );
+
+                    }
                 );
 
 
         /*
-         * Select exactly the Best 8
-         * differentials, or fewer if the
-         * player has fewer than 20 valid
-         * rounds.
+         * Select the Best 8.
          */
 
-        const best =
+        const bestEight =
             differentials.slice(
                 0,
-                Math.min(
-                    8,
-                    differentials.length
-                )
+                8
             );
 
 
         /*
-         * IMPORTANT:
-         *
-         * Identify the actual round by its
-         * internal history index.
-         *
-         * Do NOT identify by date because two
-         * rounds can potentially have the same
-         * date.
+         * Identify the actual round using its
+         * unique history index rather than date.
          */
 
-        return best.some(
-            x =>
-                x.round._historyIndex ===
-                round._historyIndex
+        return bestEight.some(
+            item => {
+
+                return (
+                    item.round._historyIndex ===
+                    round._historyIndex
+                );
+
+            }
         );
 
     },
@@ -251,14 +257,20 @@ window.History = {
                         round.player
                 )
                 .sort(
-                    (a, b) =>
-                        new Date(a.date) -
-                        new Date(b.date)
+                    (a, b) => {
+
+                        return (
+                            new Date(a.date) -
+                            new Date(b.date)
+                        );
+
+                    }
                 );
 
 
         /*
-         * Remove only this exact round.
+         * Remove this exact round rather than
+         * removing every round with the same date.
          */
 
         const previousRounds =
@@ -294,15 +306,10 @@ window.History = {
         if (after < before) {
 
             return (
-
                 "Improved " +
-
                 before.toFixed(1) +
-
                 " → " +
-
                 after.toFixed(1)
-
             );
 
         }
@@ -311,15 +318,10 @@ window.History = {
         if (after > before) {
 
             return (
-
                 "Increased " +
-
                 before.toFixed(1) +
-
                 " → " +
-
                 after.toFixed(1)
-
             );
 
         }
@@ -345,17 +347,11 @@ window.History = {
                     <tr>
 
                         <th>Date</th>
-
                         <th>Player</th>
-
                         <th>Course</th>
-
                         <th>Score</th>
-
                         <th>Differential</th>
-
                         <th>Status</th>
-
                         <th>Impact</th>
 
                     </tr>
@@ -372,19 +368,26 @@ window.History = {
 
                 const playerClass =
                     round.player
-                        ? round.player
-                            .toLowerCase()
+                        ? round.player.toLowerCase()
                         : "";
 
 
-                const rowClass =
-                    round.counting
+                let rowClass;
 
-                        ? "counting " +
-                          playerClass
 
-                        : "non-counting " +
-                          playerClass;
+                if (round.counting) {
+
+                    rowClass =
+                        "counting " +
+                        playerClass;
+
+                } else {
+
+                    rowClass =
+                        "non-counting " +
+                        playerClass;
+
+                }
 
 
                 html += `
@@ -392,65 +395,49 @@ window.History = {
                     <tr class="${rowClass}">
 
                         <td>
-
                             ${Utils.formatDate(
                                 round.date
                             )}
-
                         </td>
 
 
                         <td>
-
                             ${Utils.escapeHTML(
                                 round.player
                             )}
-
                         </td>
 
 
                         <td>
-
                             ${Utils.escapeHTML(
                                 round.course
                             )}
-
                         </td>
 
 
                         <td>
-
                             ${round.score}
-
                         </td>
 
 
                         <td>
-
                             ${Utils.formatDifferential(
                                 round.differential
                             )}
-
                         </td>
 
 
                         <td>
-
                             ${
                                 round.counting
-
-                                ? "Counting"
-
-                                : "Non-counting"
+                                    ? "Counting"
+                                    : "Non-counting"
                             }
-
                         </td>
 
 
                         <td>
-
                             ${round.impact}
-
                         </td>
 
                     </tr>
