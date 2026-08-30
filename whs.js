@@ -1,4 +1,4 @@
-```javascript
+```text
 /* ==========================================
    Golf Tracker v3
    WHS / Golf Canada Handicap Engine
