@@ -2,7 +2,6 @@
 /* ==========================================
    Golf Tracker v3
    WHS / Golf Canada Handicap Engine
-   Corrected Counting-Round Logic
    ========================================== */
 
 "use strict";
@@ -11,15 +10,9 @@
 window.WHS = {
 
 
-    /* ==========================================
+    /* ================================
        Score Differential
-
-       Formula:
-
-       Differential =
-       (Adjusted Score - Course Rating)
-       x 113 / Slope Rating
-    ========================================== */
+    ================================= */
 
     calculateDifferential(round) {
 
@@ -46,9 +39,7 @@ window.WHS = {
             isNaN(slope) ||
             slope <= 0
         ) {
-
             return null;
-
         }
 
 
@@ -77,15 +68,9 @@ window.WHS = {
     },
 
 
-    /* ==========================================
-       Maximum Score Framework
-
-       Hole-by-hole Net Double Bogey adjustment
-       requires hole-by-hole scores.
-
-       The current tracker contains total scores,
-       so the score is returned unchanged.
-    ========================================== */
+    /* ================================
+       Maximum Score
+    ================================= */
 
     applyMaximumScore(score, round) {
 
@@ -94,11 +79,9 @@ window.WHS = {
     },
 
 
-    /* ==========================================
+    /* ================================
        Differential Rounding
-
-       WHS rounds to nearest tenth
-    ========================================== */
+    ================================= */
 
     roundDifferential(value) {
 
@@ -109,13 +92,9 @@ window.WHS = {
     },
 
 
-    /* ==========================================
+    /* ================================
        Calculate Handicap Index
-
-       Uses the lowest applicable number of
-       differentials from the most recent 20
-       rounds.
-    ========================================== */
+    ================================= */
 
     calculateHandicapIndex(rounds) {
 
@@ -123,9 +102,7 @@ window.WHS = {
             !rounds ||
             rounds.length === 0
         ) {
-
             return null;
-
         }
 
 
@@ -133,11 +110,9 @@ window.WHS = {
 
             rounds
 
-                .map((round, index) => ({
+                .map(round => ({
 
                     ...round,
-
-                    _sourceIndex: index,
 
                     differential:
                         this.calculateDifferential(
@@ -158,56 +133,34 @@ window.WHS = {
         if (
             differentials.length === 0
         ) {
-
             return null;
-
         }
 
 
-        /*
-         * Only the most recent 20 valid
-         * score differentials are used.
-         */
-
         const recent20 =
-
             differentials.slice(-20);
 
 
         const count =
-
             this.getCountingRoundNumber(
                 recent20.length
             );
 
 
-        /*
-         * Fewer than 3 rounds does not
-         * produce a handicap index.
-         */
-
-        if (
-            count === 0
-        ) {
-
+        if (count === 0) {
             return null;
-
         }
 
 
         const sorted =
-
-            [...recent20]
-
-                .sort(
-                    (a, b) =>
-                        a.differential -
-                        b.differential
-                );
+            [...recent20].sort(
+                (a, b) =>
+                    a.differential -
+                    b.differential
+            );
 
 
         const countingRounds =
-
             sorted.slice(
                 0,
                 count
@@ -215,21 +168,14 @@ window.WHS = {
 
 
         const total =
-
             countingRounds.reduce(
-
                 (sum, round) =>
-
-                    sum +
-                    round.differential,
-
+                    sum + round.differential,
                 0
-
             );
 
 
         const handicap =
-
             total /
             countingRounds.length;
 
@@ -241,20 +187,9 @@ window.WHS = {
     },
 
 
-    /* ==========================================
-       Counting Differential Count
-
-       WHS:
-
-       3-5 rounds  = 1
-       6-8 rounds  = 2
-       9-11 rounds = 3
-       12-14      = 4
-       15-16      = 5
-       17         = 6
-       18         = 7
-       19-20      = 8
-    ========================================== */
+    /* ================================
+       WHS Counting Round Number
+    ================================= */
 
     getCountingRoundNumber(totalRounds) {
 
@@ -303,24 +238,17 @@ window.WHS = {
     },
 
 
-    /* ==========================================
-       Determine Counting Rounds
+    /* ================================
+       Identify Counting Rounds
 
-       This function uses EXACTLY the same
-       logic as calculateHandicapIndex().
+       This uses the same Best 8 of
+       Most Recent 20 logic as the
+       handicap calculation.
 
-       Important:
-       - Only the most recent 20 valid
-         differentials count.
-       - Only the lowest applicable number
-         of differentials are selected.
-       - Rounds are identified by their
-         original object reference/index,
-         NOT by date.
-
-       This prevents two rounds on the same
-       date from being confused with one another.
-    ========================================== */
+       It identifies rounds by their
+       original array position rather
+       than by date.
+    ================================= */
 
     identifyCountingRounds(rounds) {
 
@@ -328,196 +256,135 @@ window.WHS = {
             !rounds ||
             rounds.length === 0
         ) {
-
             return [];
-
         }
 
 
-        /*
-         * Calculate differentials while preserving
-         * the original round object.
-         */
-
-        const withDiff =
-
+        const result =
             rounds.map(
                 (round, index) => ({
 
                     ...round,
 
-                    _sourceRound:
-                        round,
-
-                    _sourceIndex:
-                        index,
+                    _sourceIndex: index,
 
                     differential:
                         this.calculateDifferential(
                             round
-                        )
+                        ),
+
+                    counting: false
 
                 })
             );
 
 
-        /*
-         * The function can safely receive either:
-         *
-         * 1. One player's rounds
-         * 2. A complete set of rounds containing
-         *    multiple players
-         *
-         * Group by player when player information
-         * exists.
-         */
-
-        const groups = {};
+        const players = {};
 
 
-        withDiff.forEach(round => {
+        result.forEach(round => {
 
-            const key =
-                round.player !== undefined
-                    ? String(round.player)
-                    : "__ALL__";
+            const player =
+                String(
+                    round.player || ""
+                );
 
 
-            if (!groups[key]) {
-                groups[key] = [];
+            if (!players[player]) {
+                players[player] = [];
             }
 
 
-            groups[key].push(round);
+            players[player].push(
+                round
+            );
 
         });
 
 
-        /*
-         * Determine the counting rounds within
-         * each player's group.
-         */
+        Object.keys(players).forEach(
+            playerName => {
 
-        Object.values(groups).forEach(
-            playerRounds => {
+                const playerRounds =
+                    players[playerName];
 
 
                 const validRounds =
+                    playerRounds.filter(
+                        round =>
+                            round.differential !== null &&
+                            Number.isFinite(
+                                round.differential
+                            )
+                    );
 
-                    playerRounds
-
-                        .filter(
-                            round =>
-                                round.differential !== null &&
-                                Number.isFinite(
-                                    round.differential
-                                )
-                        );
-
-
-                /*
-                 * Only the most recent 20
-                 * valid differentials.
-                 */
 
                 const recent20 =
-
                     validRounds.length > 20
-
-                        ? validRounds.slice(
-                            validRounds.length - 20
-                        )
-
+                        ? validRounds.slice(-20)
                         : validRounds;
 
 
                 const count =
-
                     this.getCountingRoundNumber(
                         recent20.length
                     );
 
 
-                /*
-                 * Sort a COPY so the original
-                 * chronological order remains intact.
-                 */
-
                 const sorted =
-
-                    [...recent20]
-
-                        .sort(
-                            (a, b) =>
-                                a.differential -
-                                b.differential
-                        );
+                    [...recent20].sort(
+                        (a, b) =>
+                            a.differential -
+                            b.differential
+                    );
 
 
                 const countingRounds =
-
                     sorted.slice(
                         0,
                         count
                     );
 
 
-                /*
-                 * Use object references to identify
-                 * the actual rounds.
-                 *
-                 * This is important because dates
-                 * are NOT guaranteed to be unique.
-                 */
-
-                const countingSet =
+                const countingIndexes =
                     new Set(
                         countingRounds.map(
                             round =>
-                                round._sourceRound
+                                round._sourceIndex
                         )
                     );
 
 
-                playerRounds.forEach(round => {
+                playerRounds.forEach(
+                    round => {
 
-                    round.counting =
-                        countingSet.has(
-                            round._sourceRound
-                        );
+                        round.counting =
+                            countingIndexes.has(
+                                round._sourceIndex
+                            );
 
-                });
+                    }
+                );
 
             }
         );
 
 
-        return withDiff;
+        return result;
 
     },
 
 
-    /* ==========================================
-       Player Handicap Calculation
-    ========================================== */
+    /* ================================
+       Player Handicap
+    ================================= */
 
     calculatePlayerHandicap(
         rounds,
         player
     ) {
 
-        if (
-            !rounds ||
-            !player
-        ) {
-
-            return null;
-
-        }
-
-
         const playerRounds =
-
             rounds.filter(
                 round =>
                     round.player === player
@@ -529,7 +396,6 @@ window.WHS = {
         );
 
     }
-
 
 };
 ```
